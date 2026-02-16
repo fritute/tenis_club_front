@@ -1,0 +1,538 @@
+/* ========================================
+   PRODUTOS STYLES
+   ======================================== */
+
+.produtos-container {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Produtos Grid */
+.produtos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.produto-card {
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+
+.produto-card:hover {
+  border-color: var(--primary-orange);
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Container para imagem do produto */
+.produto-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.produto-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.produto-card:hover .produto-image {
+  transform: scale(1.05);
+}
+
+.produto-image-placeholder {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(135deg, var(--gray-200) 0%, var(--gray-300) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+  color: var(--gray-400);
+}
+
+.produto-content {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.produto-nome {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dark-navy);
+  margin: 0;
+}
+
+.produto-descricao {
+  color: var(--gray-600);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.produto-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: auto;
+}
+
+.produto-categoria {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-blue);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.produto-preco {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-orange);
+}
+
+.produto-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  border-top: 2px solid var(--gray-200);
+}
+
+.produto-actions .btn {
+  flex: 1;
+}
+
+/* Image Modal */
+.image-modal {
+  max-width: 900px;
+  width: 95%;
+}
+
+.image-modal .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Upload Area */
+.upload-area {
+  margin-bottom: 2rem;
+  border: 3px dashed var(--gray-300);
+  border-radius: var(--radius-lg);
+  padding: 3rem;
+  text-align: center;
+  background: var(--gray-100);
+  transition: var(--transition);
+}
+
+.upload-area:hover {
+  border-color: var(--primary-blue);
+  background: rgba(30, 64, 175, 0.05);
+}
+
+.upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  color: var(--gray-700);
+}
+
+.upload-label i {
+  font-size: 3rem;
+  color: var(--primary-blue);
+}
+
+.upload-label span {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.upload-label small {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+.upload-label:hover i {
+  color: var(--primary-orange);
+  transform: scale(1.1);
+}
+
+/* Imagens Grid */
+.imagens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.imagem-item {
+  position: relative;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.imagem-item:hover {
+  border-color: var(--primary-blue);
+  box-shadow: var(--shadow-lg);
+  transform: scale(1.02);
+}
+
+.imagem-principal-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: var(--white);
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 10;
+  box-shadow: var(--shadow-md);
+}
+
+.imagem-preview {
+  width: 100%;
+  height: 200px;
+  background: var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.imagem-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: var(--transition);
+}
+
+.imagem-item:hover .imagem-preview img {
+  transform: scale(1.1);
+}
+
+.imagem-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--white);
+}
+
+.imagem-actions .btn {
+  flex: 1;
+}
+
+/* Form Row */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .produtos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .imagens-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .upload-area {
+    padding: 2rem 1rem;
+  }
+
+  .upload-label i {
+    font-size: 2rem;
+  }
+
+  .upload-label span {
+    font-size: 1rem;
+  }
+}
+
+/* ========================================
+   SISTEMA DE COMPRA
+   ======================================== */
+
+/* Botão comprar */
+.btn-comprar {
+  width: 100%;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.75rem 1rem;
+}
+
+.btn-comprar:hover {
+  background: var(--primary-green) !important;
+  border-color: var(--primary-green) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(132, 204, 22, 0.3);
+}
+
+/* Modal de compra */
+.compra-modal {
+  max-width: 600px;
+  width: 90%;
+}
+
+.produto-compra-info {
+  background: var(--gray-50);
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+}
+
+.produto-compra-info h3 {
+  color: var(--gray-800);
+  margin-bottom: 0.5rem;
+}
+
+.produto-descricao {
+  color: var(--gray-600);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.produto-preco-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preco-unitario {
+  color: var(--gray-700);
+  font-size: 1.1rem;
+}
+
+.preco-unitario strong {
+  color: var(--primary-green);
+  font-size: 1.2rem;
+}
+
+/* Formulário de compra */
+.compra-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Resumo do pedido */
+.pedido-resumo {
+  background: var(--gray-50);
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  margin-top: 1.5rem;
+}
+
+.pedido-resumo h4 {
+  margin-bottom: 1rem;
+  color: var(--gray-800);
+  border-bottom: 2px solid var(--primary-blue);
+  padding-bottom: 0.5rem;
+}
+
+.resumo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.resumo-item:last-child {
+  border-bottom: none;
+}
+
+.resumo-item.total {
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: var(--primary-green);
+  border-top: 2px solid var(--gray-300);
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+/* Responsivo para modal de compra */
+@media (max-width: 768px) {
+  .compra-modal {
+    width: 95%;
+    margin: 1rem;
+  }
+  
+  .produto-compra-info,
+  .pedido-resumo {
+    padding: 1rem;
+  }
+  
+  .produto-preco-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+/* =============================================
+   FORMULÁRIO DE ENDEREÇO - API v2.2
+   ============================================= */
+
+.endereco-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.endereco-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.endereco-row:nth-child(1) {
+  grid-template-columns: 2fr 1fr; /* Logradouro + Número */
+}
+
+.endereco-row:nth-child(2) {
+  grid-template-columns: 1fr 1fr; /* Complemento + Bairro */
+}
+
+.endereco-row:nth-child(3) {
+  grid-template-columns: 2fr 1fr; /* Cidade + Estado */
+}
+
+.endereco-row:nth-child(4) {
+  grid-template-columns: 1fr 2fr; /* CEP + espaço */
+}
+
+.endereco-numero {
+  max-width: 120px;
+}
+
+.endereco-estado {
+  max-width: 100px;
+}
+
+.endereco-cep {
+  max-width: 150px;
+}
+
+.endereco-grid .form-control {
+  padding: 0.75rem;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.endereco-grid .form-control:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.endereco-grid .form-control::placeholder {
+  color: var(--gray-400);
+  font-size: 0.85rem;
+}
+
+/* Responsividade para o formulário de endereço */
+@media (max-width: 768px) {
+  .endereco-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .endereco-numero,
+  .endereco-estado,
+  .endereco-cep {
+    max-width: none;
+  }
+}
+
+/* =============================================
+   MELHORIAS DO MODAL DE COMPRA v2.2
+   ============================================= */
+
+.compra-modal .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.compra-modal .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.compra-modal .form-group:last-of-type {
+  margin-bottom: 1rem;
+}
+
+/* Estilos melhorados para o resumo do pedido */
+.pedido-resumo {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 2px solid var(--primary-blue);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.pedido-resumo h4 {
+  color: var(--primary-blue);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.pedido-resumo h4::before {
+  content: "🛒";
+  font-size: 1.2rem;
+}

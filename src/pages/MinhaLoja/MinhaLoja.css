@@ -1,0 +1,362 @@
+/* ===== MINHA LOJA - ESTILOS GERAIS ===== */
+.minha-loja-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* ===== HEADER DA LOJA ===== */
+.loja-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 30px;
+  color: white;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.loja-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.loja-avatar {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.loja-details h2 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.loja-email {
+  margin: 8px 0;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.loja-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.status-badge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-badge.active {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.status-badge.inactive {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.status-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #fff;
+  opacity: 0.8;
+}
+
+.status-toggle-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.status-toggle-btn.ativo {
+  color: #28a745;
+}
+
+.status-toggle-btn.inativo {
+  color: #dc3545;
+}
+
+/* ===== ESTATÍSTICAS ===== */
+.loja-stats {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: 140px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.stat-card i {
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+.stat-number {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===== NAVEGAÇÃO POR ABAS ===== */
+.loja-tabs {
+  background: white;
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 4px;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 15px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tab-button:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.tab-button i {
+  font-size: 18px;
+}
+
+/* ===== CONTEÚDO DAS ABAS ===== */
+.tab-content {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  min-height: 500px;
+}
+
+/* ===== ESTADOS DE LOADING E ERRO ===== */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.loading-container i {
+  color: #667eea;
+  margin-bottom: 20px;
+}
+
+.error-container i {
+  color: #dc3545;
+  margin-bottom: 20px;
+}
+
+.error-container h3 {
+  color: #dc3545;
+  margin-bottom: 15px;
+}
+
+.error-container p {
+  margin-bottom: 25px;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.auth-status {
+  background: rgba(40, 167, 69, 0.1);
+  border: 1px solid rgba(40, 167, 69, 0.3);
+  border-radius: 10px;
+  padding: 15px;
+  margin: 20px 0;
+  text-align: left;
+  max-width: 400px;
+}
+
+.auth-status p {
+  margin: 5px 0;
+  color: #c3e6cb;
+  font-size: 14px;
+}
+
+.auth-status strong {
+  color: #fff;
+}
+
+.error-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.error-actions .btn-lg {
+  padding: 15px 30px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 10px;
+  min-width: 250px;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.error-actions .btn {
+  min-width: 160px;
+  padding: 12px 24px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.error-actions .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.error-actions .btn-info {
+  background: linear-gradient(135deg, #17a2b8, #138496);
+  border: none;
+  color: white;
+}
+
+.error-actions .btn-info:hover {
+  background: linear-gradient(135deg, #138496, #117a8b);
+}
+
+/* ===== RESPONSIVIDADE ===== */
+@media (max-width: 768px) {
+  .minha-loja-container {
+    padding: 15px;
+  }
+
+  .loja-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .loja-info {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .loja-stats {
+    justify-content: center;
+  }
+
+  .loja-tabs {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tab-button {
+    padding: 12px 15px;
+  }
+
+  .tab-content {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .loja-header {
+    padding: 15px;
+  }
+
+  .loja-details h2 {
+    font-size: 22px;
+  }
+
+  .stat-card {
+    min-width: 120px;
+    padding: 15px;
+  }
+
+  .tab-content {
+    padding: 15px;
+  }
+}
+
+/* ===== JQUERY TRANSITIONS ===== */
+.tab-content {
+  transition: all 0.3s ease;
+}
+
+.tab-content.fade-out {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.tab-content.fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}

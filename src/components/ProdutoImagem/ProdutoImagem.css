@@ -1,0 +1,158 @@
+/* Componente ProdutoImagem */
+.produto-imagem {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.produto-imagem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.produto-imagem:hover img {
+  transform: scale(1.05);
+}
+
+.produto-imagem-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #adb5bd;
+  font-size: 1.2rem;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.produto-placeholder-svg {
+  width: 100%;
+  height: 100%;
+  max-width: 200px;
+  max-height: 150px;
+}
+
+.produto-imagem-placeholder span {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.produto-imagem-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: #6366f1;
+}
+
+/* Tamanhos */
+.produto-imagem-small {
+  width: 60px;
+  height: 60px;
+}
+
+.produto-imagem-small .produto-imagem-placeholder {
+  font-size: 1rem;
+}
+
+.produto-imagem-medium {
+  width: 100%;
+  height: 200px;
+}
+
+.produto-imagem-large {
+  width: 100%;
+  height: 300px;
+}
+
+.produto-imagem-banner {
+  width: 100%;
+  height: 150px;
+}
+
+/* Variações de forma */
+.produto-imagem-circle {
+  border-radius: 50%;
+}
+
+.produto-imagem-square {
+  border-radius: 4px;
+  aspect-ratio: 1;
+}
+
+/* Estados */
+.produto-imagem-hover:hover {
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Overlay para ações */
+.produto-imagem-with-overlay {
+  position: relative;
+}
+
+.produto-imagem-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.produto-imagem-with-overlay:hover .produto-imagem-overlay {
+  opacity: 1;
+}
+
+.produto-imagem-overlay button {
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.produto-imagem-overlay button:hover {
+  transform: scale(1.1);
+}
+
+/* Badge/Tag no canto */
+.produto-imagem-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #28a745;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.produto-imagem-badge.status-inativo {
+  background: #dc3545;
+}
+
+.produto-imagem-badge.status-pendente {
+  background: #ffc107;
+  color: #000;
+}
