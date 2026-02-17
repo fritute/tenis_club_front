@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPedidos, updateStatusPedido } from '../../../services/api';
+import { getPedidosRecebidos, updateStatusPedido } from '../../../services/api';
 import $ from 'jquery';
 import './MinhaLojaPedidos.css';
 
@@ -26,11 +26,24 @@ const MinhaLojaPedidos = ({ loja }) => {
   const carregarPedidos = async () => {
     try {
       setLoading(true);
-      const response = await getPedidos({ loja_id: loja?.id });
-      setPedidos(response?.pedidos || []);
+      // Usar endpoint específico para fornecedores em vez de getPedidos
+      // getPedidos (getAllPedidos) é restrito a executivos
+      // getPedidosRecebidos é para fornecedores verem suas vendas
+      const response = await getPedidosRecebidos({ loja_id: loja?.id });
+      
+      // Garantir que sempre seja um array
+      const listaPedidos = Array.isArray(response) ? response : (response?.pedidos || []);
+      setPedidos(listaPedidos);
+      
     } catch (err) {
       console.error('[MinhaLojaPedidos] Erro ao carregar pedidos:', err);
-      setError('⚠️ Erro ao carregar pedidos da loja');
+      // Verificar se é erro de token desatualizado
+      if (err.message === 'TOKEN_DESATUALIZADO') {
+        setError('⚠️ Sessão expirada. Por favor, faça login novamente.');
+      } else {
+        setError('⚠️ Erro ao carregar pedidos da loja');
+      }
+      setPedidos([]); // Garantir array vazio em caso de erro
     } finally {
       setLoading(false);
     }
@@ -87,8 +100,11 @@ const MinhaLojaPedidos = ({ loja }) => {
   };
 
   const filtrarPedidos = () => {
-    if (filtroStatus === 'todos') return pedidos;
-    return pedidos.filter(pedido => pedido.status === filtroStatus);
+    // Garantir que pedidos seja array
+    const lista = Array.isArray(pedidos) ? pedidos : [];
+    
+    if (filtroStatus === 'todos') return lista;
+    return lista.filter(pedido => pedido.status === filtroStatus);
   };
 
   const formatarData = (data) => {
@@ -111,7 +127,8 @@ const MinhaLojaPedidos = ({ loja }) => {
   const contarPedidosPorStatus = () => {
     const contadores = {};
     Object.keys(statusPedidos).forEach(status => {
-      contadores[status] = pedidos.filter(p => p.status === status).length;
+      // Garantir que pedidos seja um array antes de filtrar
+      contadores[status] = Array.isArray(pedidos) ? pedidos.filter(p => p.status === status).length : 0;
     });
     return contadores;
   };

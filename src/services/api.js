@@ -1,12 +1,27 @@
-﻿import axios from 'axios';
+
+import axios from 'axios';
 import $ from 'jquery';
 import { TODOS_STATUS, isStatusValido } from '../constants/pedidoConstants';
+
+// Deletar vínculo por produto e fornecedor
+export const deleteVinculoPorProdutoFornecedor = async (id_produto, id_fornecedor) => {
+  try {
+    console.log('[API] Removendo vínculo por produto e fornecedor:', id_produto, id_fornecedor);
+    const response = await api.delete(`/vinculos/${id_produto}?fornecedor=${id_fornecedor}`);
+    console.log('[API] Vínculo removido por produto e fornecedor com sucesso');
+    return response.data;
+  } catch (error) {
+    console.error('[API] Erro ao remover vínculo por produto e fornecedor:', error);
+    throw error.response?.data || new Error('Erro ao remover vínculo por produto e fornecedor');
+  }
+};
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
 // Configuração do Axios
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000, // 15 segundos de timeout para evitar loading eterno
   headers: {
     'Content-Type': 'application/json',
   },
@@ -628,11 +643,17 @@ export const addProdutoMinhaLoja = async (produtoData) => {
   } catch (error) {
     console.error('[API] ❌ Erro ao adicionar produto à loja:', error);
     
+    const errorMessage = error.response?.data?.message || '';
+    
     if (error.response?.status === 400) {
       throw new Error('Dados inválidos - Nome do produto é obrigatório');
     } else if (error.response?.status === 401) {
       throw new Error('Você precisa estar logado como fornecedor');
     } else if (error.response?.status === 403) {
+      // Verificar se é erro de token desatualizado
+      if (errorMessage.includes('não está associado') || errorMessage.includes('Crie sua loja')) {
+        throw new Error('TOKEN_DESATUALIZADO');
+      }
       throw new Error('Apenas fornecedores podem adicionar produtos à sua loja');
     } else if (error.response?.status === 409) {
       throw new Error('Produto com esse nome já existe na sua loja');
@@ -899,20 +920,33 @@ export const getRelatorioFinanceiro = async () => {
 export const createPedido = async (data) => {
   try {
     // Validação dos dados obrigatórios
+    if (!data.fornecedor_id) {
+      throw new Error('ID do fornecedor é obrigatório');
+    }
+    
     if (!data.itens || data.itens.length === 0) {
       throw new Error('O pedido deve conter pelo menos um item');
     }
     
-    if (!data.endereco_entrega || data.endereco_entrega.trim() === '') {
+    if (!data.endereco_entrega) {
       throw new Error('Endereço de entrega é obrigatório');
     }
     
-    if (!data.telefone_contato || data.telefone_contato.trim() === '') {
-      throw new Error('Telefone de contato é obrigatório');
-    }
+    // Validar campos obrigatórios de cada item
+    data.itens.forEach((item, index) => {
+      if (!item.produto_id) {
+        throw new Error(`Item ${index + 1}: produto_id é obrigatório`);
+      }
+      if (!item.quantidade || item.quantidade <= 0) {
+        throw new Error(`Item ${index + 1}: quantidade deve ser maior que zero`);
+      }
+      if (item.preco_unitario === undefined || item.preco_unitario === null) {
+        throw new Error(`Item ${index + 1}: preco_unitario é obrigatório`);
+      }
+    });
     
     console.log('[API] 🛒 Criando pedido com', data.itens.length, 'item(ns)');
-    console.log('[API] 📞 Telefone:', data.telefone_contato);
+    console.log('[API] 🏪 Fornecedor ID:', data.fornecedor_id);
     console.log('[API] 📍 Endereço:', data.endereco_entrega);
     console.log('[API] 📦 Dados completos do pedido:', JSON.stringify(data, null, 2));
     
@@ -998,9 +1032,18 @@ export const getPedidosRecebidos = async (params = {}) => {
   } catch (error) {
     console.error('[API] ❌ Erro ao buscar pedidos recebidos:', error);
     
+    const errorMessage = error.response?.data?.message || '';
+    
     if (error.response?.status === 404) {
       console.warn('[API] ⚠️ Endpoint /pedidos/recebidos não implementado');
       return { pedidos: [] };
+    }
+    
+    // Verificar se é erro de token desatualizado (fornecedor sem loja associada no JWT)
+    if (error.response?.status === 403) {
+      if (errorMessage.includes('não está associado') || errorMessage.includes('Crie sua loja')) {
+        throw new Error('TOKEN_DESATUALIZADO');
+      }
     }
     
     throw error.response?.data || new Error('Erro ao buscar pedidos recebidos');
@@ -1017,16 +1060,36 @@ export const getEstatisticasPedidos = async (periodo = '30d') => {
   } catch (error) {
     console.error('[API] ❌ Erro ao buscar estatísticas de pedidos:', error);
     
+    const errorMessage = error.response?.data?.message || '';
+    
     if (error.response?.status === 404) {
       return {
-        total_pedidos: 150,
-        pedidos_pendentes: 12,
-        pedidos_confirmados: 35,
-        pedidos_entregues: 98,
-        pedidos_cancelados: 5,
-        receita_total: 45750.80,
-        receita_mes_atual: 8945.50,
-        ticket_medio: 305.00
+        total_pedidos: 0,
+        pedidos_pendentes: 0,
+        pedidos_confirmados: 0,
+        pedidos_entregues: 0,
+        pedidos_cancelados: 0,
+        receita_total: 0,
+        receita_mes_atual: 0,
+        ticket_medio: 0
+      };
+    }
+    
+    // Verificar se é erro de token desatualizado (fornecedor sem loja associada no JWT)
+    if (error.response?.status === 403) {
+      if (errorMessage.includes('não está associado') || errorMessage.includes('Crie sua loja')) {
+        throw new Error('TOKEN_DESATUALIZADO');
+      }
+      // Retornar estatísticas zeradas se não tem permissão
+      return {
+        total_pedidos: 0,
+        pedidos_pendentes: 0,
+        pedidos_confirmados: 0,
+        pedidos_entregues: 0,
+        pedidos_cancelados: 0,
+        receita_total: 0,
+        receita_mes_atual: 0,
+        ticket_medio: 0
       };
     }
     
@@ -1450,36 +1513,75 @@ export const getVinculosPorFornecedor = async (fornecedorId) => {
   }
 };
 
-// Remover vinculo
-export const deleteVinculo = async (vinculoId) => {
+// Nova rota para buscar produtos da minha empresa (próprios + vinculados)
+export const getMeusProdutos = async () => {
   try {
-    console.log('[API] Removendo vinculo:', vinculoId);
-    const response = await api.delete('/vinculos/' + vinculoId);
+    console.log('[API] Buscando produtos da minha empresa (próprios + vinculados)');
+    const response = await api.get('/produtos/minha-empresa');
     
-    console.log('[API] Vinculo removido com sucesso');
-    return response.data;
+    const data = response.data;
+    const produtos = Array.isArray(data) ? data : (data?.produtos || data?.data || []);
+    
+    console.log(`[API] ✅ ${produtos.length} produtos encontrados na minha empresa`);
+    return produtos;
   } catch (error) {
-    console.error('[API] Erro ao remover vinculo:', error);
+    console.error('[API] Erro ao buscar produtos da minha empresa:', error);
     
     if (error.response?.status === 404) {
-      throw new Error('Vinculo nao encontrado');
-    } else if (error.response?.status === 403) {
-      throw new Error('Voce nao tem permissao para remover este vinculo');
+      console.warn('[API] Rota /produtos/minha-empresa não encontrada, tentando fallback...');
+      // Fallback para getProdutos com loja_id se a rota nova falhar
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user?.loja?.id) {
+          return await getProdutos({ loja_id: user.loja.id });
+        }
+      } catch (e) {
+        console.error('Erro no fallback:', e);
+      }
+      return [];
     }
     
-    throw error.response?.data || new Error('Erro ao remover vinculo');
+    throw error.response?.data || new Error('Erro ao buscar produtos da minha empresa');
   }
 };
 
-// Remover múltiplos vínculos em massa
-export const deleteVinculosEmMassa = async (vinculoIds) => {
+// Remover vinculo
+// Remover vínculo por ID
+export const deleteVinculo = async (vinculoId) => {
   try {
-    console.log('[API] Removendo vínculos em massa:', vinculoIds);
-    
-    // Usa endpoint correto /vinculos/multiplos
+    console.log('[API] Removendo vínculo:', vinculoId);
+    const response = await api.delete('/vinculos/' + vinculoId);
+    console.log('[API] Vínculo removido com sucesso');
+    return response.data;
+  } catch (error) {
+    console.error('[API] Erro ao remover vínculo:', error);
+    if (error.response?.status === 404) {
+      throw new Error('Vínculo não encontrado');
+    } else if (error.response?.status === 403) {
+      throw new Error('Você não tem permissão para remover este vínculo');
+    }
+    throw error.response?.data || new Error('Erro ao remover vínculo');
+  }
+};
+export const deleteVinculosEmMassa = async (vinculos) => {
+  try {
+    console.log('[API] Removendo vínculos em massa:', vinculos);
+    // Filtra apenas os campos id_produto e id_fornecedor
+    const vinculosFiltrados = vinculos.map(v => ({
+      id_produto: v.id_produto,
+      id_fornecedor: v.id_fornecedor
+    }));
+    // Validação extra e log detalhado
+    const invalidos = vinculosFiltrados.filter(v => !v.id_produto || !v.id_fornecedor);
+    if (invalidos.length > 0) {
+      console.error('[API] Vínculos inválidos detectados antes do envio:', invalidos);
+      throw new Error('Existem vínculos sem id_produto ou id_fornecedor');
+    }
+    console.log('[API] Payload final para /vinculos/multiplos:', JSON.stringify({ vinculos: vinculosFiltrados }));
     try {
-      const response = await api.delete('/vinculos/multiplos', { 
-        data: { ids: vinculoIds } 
+      const response = await api.delete('/vinculos/multiplos', {
+        data: { vinculos: vinculosFiltrados },
+        headers: { 'Content-Type': 'application/json' }
       });
       console.log('[API] Vínculos removidos em massa com sucesso');
       return response.data;
@@ -1487,21 +1589,19 @@ export const deleteVinculosEmMassa = async (vinculoIds) => {
       // Se não existir endpoint de massa, remove um a um
       if (massaError.response?.status === 404 || massaError.response?.status === 405) {
         console.log('[API] Endpoint de massa não disponível, removendo um a um...');
-        
         const resultados = {
           sucesso: [],
           falhas: []
         };
-        
-        for (const id of vinculoIds) {
+        for (const vinc of vinculosFiltrados) {
           try {
-            await api.delete('/vinculos/' + id);
-            resultados.sucesso.push(id);
+            // Remove por produto e fornecedor
+            await api.delete(`/vinculos/${vinc.id_produto}?fornecedor=${vinc.id_fornecedor}`);
+            resultados.sucesso.push(vinc);
           } catch (err) {
-            resultados.falhas.push({ id, erro: err.message });
+            resultados.falhas.push({ ...vinc, erro: err.message });
           }
         }
-        
         console.log('[API] Remoção em massa concluída:', resultados);
         return resultados;
       }
@@ -1531,6 +1631,67 @@ export const deleteVinculosPorProduto = async (produtoId) => {
     }
     
     throw error.response?.data || new Error('Erro ao remover vínculos do produto');
+  }
+};
+
+// Definir fornecedor principal para um produto
+export const setVinculoPrincipal = async (id_produto, id_fornecedor) => {
+  try {
+    console.log(`[API] Definindo fornecedor principal: Produto ${id_produto}, Fornecedor ${id_fornecedor}`);
+    const response = await api.put(`/vinculos/${id_produto}/${id_fornecedor}/principal`);
+    
+    console.log('[API] Fornecedor principal definido com sucesso');
+    return response.data;
+  } catch (error) {
+    console.error('[API] Erro ao definir fornecedor principal:', error);
+    
+    if (error.response?.status === 404) {
+      throw new Error('Vínculo não encontrado');
+    } else if (error.response?.status === 403) {
+      throw new Error('Permissão negada');
+    }
+    
+    throw error.response?.data || new Error('Erro ao definir fornecedor principal');
+  }
+};
+
+// Obter histórico de vínculos
+export const getHistoricoVinculos = async (produtoId = null) => {
+  try {
+    let url = '/vinculos/historico';
+    if (produtoId) {
+      url += `?produto_id=${produtoId}`;
+    }
+    
+    console.log(`[API] Buscando histórico de vínculos: ${url}`);
+    const response = await api.get(url);
+    
+    console.log(`[API] Histórico recuperado: ${response.data?.length || 0} registros`);
+    return response.data;
+  } catch (error) {
+    console.error('[API] Erro ao buscar histórico de vínculos:', error);
+    throw error.response?.data || new Error('Erro ao buscar histórico de vínculos');
+  }
+};
+
+export const getProdutosDisponiveis = async () => {
+  try {
+    console.log('[API] Buscando produtos disponíveis para vinculação');
+    const response = await api.get('/produtos/disponiveis');
+    
+    const data = response.data;
+    const produtos = Array.isArray(data) ? data : (data?.produtos || data?.data || []);
+    
+    console.log(`[API] ${produtos.length} produtos disponíveis encontrados`);
+    return produtos;
+  } catch (error) {
+    console.error('[API] Erro ao buscar produtos disponíveis:', error);
+    
+    if (error.response?.status === 404) {
+      return [];
+    }
+    
+    throw error.response?.data || new Error('Erro ao buscar produtos disponíveis');
   }
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import $ from 'jquery';
 import {
   getProdutos,
@@ -8,6 +9,7 @@ import {
   getCategorias,
   getFornecedores,
   getProdutoImagens,
+  getVinculosPorProduto,
   uploadProdutoImagem,
   setProdutoImagemPrincipal,
   deleteProdutoImagem,
@@ -20,6 +22,7 @@ import './Produtos.css';
 const API_BASE = 'http://localhost:8000';
 
 function Produtos({ user }) {
+  const location = useLocation();
   const [produtos, setProdutos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
@@ -54,8 +57,7 @@ function Produtos({ user }) {
       cidade: '',
       estado: '',
       cep: ''
-    },
-    telefone_contato: '',
+    }
   });
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,8 +83,13 @@ function Produtos({ user }) {
       console.log('[Produtos] fornecedoresData:', fornecedoresData);
       
       // Backend pode retornar {produtos: [...]} ou [...]
-      const produtos = Array.isArray(produtosData) ? produtosData : 
+      let produtos = Array.isArray(produtosData) ? produtosData : 
                        (produtosData?.produtos || produtosData?.data || []);
+      // Corrige produtos que só têm 'preco' para também ter 'preco_base'
+      produtos = produtos.map(p => ({
+        ...p,
+        preco_base: p.preco_base !== undefined && p.preco_base !== null ? p.preco_base : p.preco !== undefined ? p.preco : 0
+      }));
       const categorias = Array.isArray(categoriasData) ? categoriasData : 
                         (categoriasData?.categorias || categoriasData?.data || []);
       const fornecedores = Array.isArray(fornecedoresData) ? fornecedoresData : 
@@ -96,6 +103,26 @@ function Produtos({ user }) {
       setProdutos(produtos);
       setCategorias(categorias);
       setFornecedores(fornecedores);
+
+      // Verificar se há produto pré-selecionado vindo da navegação (ex: página de fornecedores)
+      if (location.state?.produtoParaComprar) {
+        console.log('[Produtos] Produto pré-selecionado recebido:', location.state.produtoParaComprar);
+        const produtoAlvo = produtos.find(p => p.id === location.state.produtoParaComprar.id);
+        
+        if (produtoAlvo) {
+          // Se o produto existir na lista, abre o modal de compra
+          // Pequeno delay para garantir que o estado foi atualizado e DOM renderizado
+          setTimeout(() => {
+            handleComprar(produtoAlvo);
+            
+            // Se houver fornecedor pré-selecionado, define ele
+            if (location.state.fornecedorPreSelecionado) {
+              setFornecedorSelecionado(location.state.fornecedorPreSelecionado.id);
+            }
+          }, 500);
+        }
+      }
+
     } catch (error) {
       console.error('[Produtos] Erro ao carregar dados:', error);
       
@@ -170,28 +197,79 @@ function Produtos({ user }) {
     }
   };
 
-  const handleComprar = (produto) => {
+  // Adicionar estado para fornecedores disponíveis para o produto selecionado
+  const [fornecedoresDoProduto, setFornecedoresDoProduto] = useState([]);
+  const [fornecedorSelecionado, setFornecedorSelecionado] = useState(null);
+
+  const handleComprar = async (produto) => {
     console.log('[Produtos] Iniciando compra do produto:', produto);
-    setProdutoParaCompra(produto);
-    setCompraData({
-      quantidade: 1,
-      observacoes: '',
-      endereco_entrega: {
-        logradouro: '',
-        numero: '',
-        complemento: '',
-        bairro: '',
-        cidade: '',
-        estado: '',
-        cep: ''
-      },
-      telefone_contato: '',
-    });
-    setShowCompraModal(true);
     
-    setTimeout(() => {
-      $('.compra-modal').addClass('show');
-    }, 10);
+      // Verificar se o produto tem fornecedores vinculados
+      try {
+        setLoading(true);
+        // Importar getVinculosPorProduto se não estiver importado (está no topo)
+        const vinculos = await getVinculosPorProduto(produto.id);
+        console.log('[Produtos] Fornecedores encontrados:', vinculos);
+        
+        let fornecedoresDisponiveis = [];
+        
+        if (vinculos && vinculos.length > 0) {
+          // Se tiver vínculos, usa apenas os fornecedores vinculados
+          fornecedoresDisponiveis = vinculos;
+        } else {
+          // Se não tiver vínculos (modo simplificado para usuário comum), 
+          // permite escolher qualquer fornecedor do sistema para não travar a compra
+          console.log('[Produtos] Sem vínculos específicos. Carregando todos os fornecedores como opção.');
+          
+          // Mapeia os fornecedores globais para o formato esperado
+          fornecedoresDisponiveis = fornecedores.map(f => ({
+            id_fornecedor: f.id,
+            fornecedor_id: f.id,
+            preco: produto.preco_base // Usa o preço base do produto
+          }));
+        }
+        
+        if (fornecedoresDisponiveis.length === 0) {
+          showNotification('Não há fornecedores disponíveis no sistema para este produto.', 'warning');
+          setLoading(false);
+          return;
+        }
+        
+        setFornecedoresDoProduto(fornecedoresDisponiveis);
+        
+        // Se tiver apenas um, seleciona automaticamente
+        if (fornecedoresDisponiveis.length === 1) {
+          setFornecedorSelecionado(fornecedoresDisponiveis[0].id_fornecedor || fornecedoresDisponiveis[0].fornecedor_id);
+        } else {
+          setFornecedorSelecionado(null); // Obriga o usuário a escolher
+        }
+        
+        setProdutoParaCompra(produto);
+        setCompraData({
+          quantidade: 1,
+          observacoes: '',
+          endereco_entrega: {
+            logradouro: '',
+            numero: '',
+            complemento: '',
+            bairro: '',
+            cidade: '',
+            estado: '',
+            cep: ''
+          }
+        });
+        setShowCompraModal(true);
+        
+        setTimeout(() => {
+          $('.compra-modal').addClass('show');
+        }, 10);
+        
+      } catch (error) {
+      console.error('[Produtos] Erro ao buscar fornecedores:', error);
+      showNotification('Erro ao verificar disponibilidade do produto.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const closeCompraModal = () => {
@@ -199,27 +277,41 @@ function Produtos({ user }) {
     setTimeout(() => {
       setShowCompraModal(false);
       setProdutoParaCompra(null);
+      setFornecedoresDoProduto([]);
+      setFornecedorSelecionado(null);
     }, 300);
   };
 
   const handleSubmitCompra = async (e) => {
     e.preventDefault();
+    console.log('[Produtos] Tentativa de finalizar compra iniciada');
     
-    if (!produtoParaCompra) return;
+    if (!produtoParaCompra) {
+      console.error('[Produtos] Erro: produtoParaCompra é null');
+      alert('Erro interno: Produto não selecionado. Tente abrir o modal novamente.');
+      return;
+    }
+
+    console.log('[Produtos] Produto selecionado:', produtoParaCompra);
+    console.log('[Produtos] Fornecedor selecionado:', fornecedorSelecionado);
+    console.log('[Produtos] Dados do formulário:', compraData);
     
     try {
       // Validar dados obrigatórios
-      if (!compraData.endereco_entrega.logradouro || 
-          !compraData.endereco_entrega.numero || 
-          !compraData.endereco_entrega.cidade || 
-          !compraData.endereco_entrega.estado || 
-          !compraData.endereco_entrega.cep) {
-        showNotification('Por favor, preencha todos os campos do endereço', 'error');
-        return;
-      }
+      const erros = [];
+      if (!fornecedorSelecionado) erros.push('Fornecedor (selecione de quem comprar)');
+      if (!compraData.endereco_entrega.logradouro) erros.push('Logradouro');
+      if (!compraData.endereco_entrega.numero) erros.push('Número');
+      if (!compraData.endereco_entrega.cidade) erros.push('Cidade');
+      if (!compraData.endereco_entrega.estado) erros.push('Estado');
+      if (!compraData.endereco_entrega.cep) erros.push('CEP');
 
-      if (!compraData.telefone_contato || compraData.telefone_contato.trim() === '') {
-        showNotification('Por favor, preencha o telefone de contato', 'error');
+      if (erros.length > 0) {
+        const msg = `Por favor, preencha os seguintes campos obrigatórios: ${erros.join(', ')}`;
+        console.warn('[Produtos] Validação falhou:', msg);
+        showNotification(msg, 'error');
+        // Fallback caso a notificação não apareça
+        if (!$('.notification').length) alert(msg);
         return;
       }
 
@@ -228,23 +320,19 @@ function Produtos({ user }) {
       const quantidade = parseInt(compraData.quantidade);
       const subtotal = precoUnitario * quantidade;
 
-      // Formatar endereço como string
-      const enderecoCompleto = [
-        `${compraData.endereco_entrega.logradouro}, ${compraData.endereco_entrega.numero}`,
-        compraData.endereco_entrega.complemento,
-        compraData.endereco_entrega.bairro,
-        `${compraData.endereco_entrega.cidade}-${compraData.endereco_entrega.estado}`,
-        compraData.endereco_entrega.cep
-      ].filter(Boolean).join(', ');
-
-      console.log('[Produtos] Endereço formatado:', enderecoCompleto);
-
-      // Formato da API v2.2 segundo documentação
+      // Formato correto da API segundo backend
       const pedidoData = {
-        usuario_id: user?.id, // ID do usuário logado
-        fornecedor_id: produtoParaCompra.fornecedor_id, // ID do fornecedor do produto
-        telefone_contato: compraData.telefone_contato,
-        endereco_entrega: enderecoCompleto, // String formatada
+        fornecedor_id: fornecedorSelecionado, // ID do fornecedor selecionado
+        valor_total: subtotal, // Valor total do pedido
+        endereco_entrega: {
+          rua: compraData.endereco_entrega.logradouro,
+          numero: compraData.endereco_entrega.numero,
+          complemento: compraData.endereco_entrega.complemento || '',
+          bairro: compraData.endereco_entrega.bairro,
+          cidade: compraData.endereco_entrega.cidade,
+          estado: compraData.endereco_entrega.estado,
+          cep: compraData.endereco_entrega.cep
+        },
         observacoes: compraData.observacoes || '',
         itens: [
           {
@@ -256,21 +344,16 @@ function Produtos({ user }) {
         ]
       };
 
-      console.log('[Produtos] Submetendo pedido (API v2.2):', pedidoData);
+      console.log('[Produtos] Submetendo pedido para API:', pedidoData);
       
-      // Usar a API de pedidos v2.2
+      // Usar a API de pedidos
       try {
         const response = await createPedido(pedidoData);
-        console.log('[Produtos] Pedido criado na API v2.2:', response);
-        
+        console.log('[Produtos] Pedido criado com sucesso:', response);
         showNotification(
-          `✅ Pedido realizado com sucesso! 
-          🛒 ${quantidade}x ${produtoParaCompra.nome}
-          💰 Total: R$ ${subtotal.toFixed(2)}
-          📋 ID: #${response.id || 'novo'}`,
+          `✅ Pedido realizado com sucesso! \n🛒 ${quantidade}x ${produtoParaCompra.nome}\n💰 Total: R$ ${subtotal.toFixed(2)}\n📋 ID: #${response.id || 'novo'}`,
           'success'
         );
-        
         // Limpar formulário e fechar modal
         setCompraData({
           quantidade: 1,
@@ -283,25 +366,23 @@ function Produtos({ user }) {
             cidade: '',
             estado: '',
             cep: ''
-          },
-          telefone_contato: ''
+          }
         });
-        
+        console.log('[Produtos] Fechando modal de compra após sucesso.');
+        closeCompraModal();
       } catch (apiError) {
-        console.error('[Produtos] Erro na API de pedidos v2.2:', apiError);
+        console.error('[Produtos] Erro na API de pedidos:', apiError);
+        
+        // Extrair mensagem de erro detalhada
+        const errorMsg = apiError.response?.data?.message || apiError.message || 'Erro ao criar pedido';
         
         if (apiError.response?.status === 404) {
           // API ainda não implementada - mostrar dados simulados  
           console.warn('[Produtos] API de pedidos não disponível, simulando sucesso');
-          
           showNotification(
-            `🔧 Pedido simulado (API em desenvolvimento)! 
-            🛒 ${quantidade}x ${produtoParaCompra.nome}
-            💰 Total: R$ ${subtotal.toFixed(2)}
-            📧 Dados salvos localmente`,
+            `🔧 Pedido simulado (API em desenvolvimento)! \n🛒 ${quantidade}x ${produtoParaCompra.nome}\n💰 Total: R$ ${subtotal.toFixed(2)}\n📧 Dados salvos localmente`,
             'success'
           );
-          
           // Simular armazenamento local para desenvolvimento
           const pedidosLocal = JSON.parse(localStorage.getItem('pedidos_simulados') || '[]');
           pedidosLocal.push({
@@ -311,26 +392,27 @@ function Produtos({ user }) {
             status: 'pendente'
           });
           localStorage.setItem('pedidos_simulados', JSON.stringify(pedidosLocal));
-          
+          closeCompraModal();
         } else {
           // Erro real da API
-          throw apiError;
+          showNotification(`Erro ao criar pedido: ${errorMsg}`, 'error');
+          // Fallback alert
+          if (!$('.notification').length) alert(`Erro ao criar pedido: ${errorMsg}`);
         }
       }
-
-      closeCompraModal();
       
     } catch (error) {
-      console.error('[Produtos] Erro ao processar compra v2.2:', error);
+      console.error('[Produtos] Erro genérico ao processar compra:', error);
       
       const errorMessage = error.response?.data?.message || 
                           error.message || 
                           'Erro desconhecido ao processar compra';
       
       showNotification(
-        `❌ Erro ao processar compra: ${errorMessage}. Tente novamente.`,
+        `❌ Erro crítico: ${errorMessage}.`,
         'error'
       );
+      alert(`Erro crítico: ${errorMessage}`);
     }
   };
 
@@ -534,11 +616,9 @@ function Produtos({ user }) {
                         <i className="fas fa-tag"></i>
                         {getCategoriaName(produto.categoria_id)}
                       </span>
-                      {produto.preco_base && (
-                        <span className="produto-preco">
-                          R$ {Number(produto.preco_base).toFixed(2)}
-                        </span>
-                      )}
+                      <span className="produto-preco">
+                        R$ {Number(produto.preco_base || 0).toFixed(2)}
+                      </span>
                     </div>
                     <span className={`badge ${produto.status === 'Ativo' ? 'badge-success' : 'badge-error'}`}>
                       {produto.status}
@@ -549,8 +629,15 @@ function Produtos({ user }) {
                       // Usuário comum - apenas botão comprar
                       <button
                         className="btn btn-sm btn-success btn-comprar"
-                        onClick={() => handleComprar(produto)}
+                        onClick={() => {
+                          if (Number(produto.preco_base) > 0) {
+                            handleComprar(produto);
+                          } else {
+                            showNotification('Produto sem preço definido. Não é possível comprar.', 'error');
+                          }
+                        }}
                         title="Comprar Produto"
+                        disabled={Number(produto.preco_base) <= 0}
                       >
                         <i className="fas fa-shopping-cart"></i>
                         Comprar
@@ -824,6 +911,40 @@ function Produtos({ user }) {
                       Preço unitário: <strong>R$ {parseFloat(produtoParaCompra.preco_base || 0).toFixed(2)}</strong>
                     </span>
                   </div>
+                  
+                  {/* Seletor de Fornecedor */}
+                  {fornecedoresDoProduto.length > 0 && (
+                    <div className="fornecedor-selecao" style={{ marginTop: '1rem', padding: '1rem', background: '#e0f2fe', borderRadius: '0.5rem' }}>
+                      <label className="form-label" style={{ fontWeight: 'bold', color: '#0369a1' }}>
+                        <i className="fas fa-store"></i> Comprar de:
+                      </label>
+                      {fornecedoresDoProduto.length === 1 ? (
+                        <div style={{ fontSize: '1.1rem', fontWeight: '500' }}>
+                          {fornecedores.find(f => f.id === fornecedoresDoProduto[0].id_fornecedor || f.id === fornecedoresDoProduto[0].fornecedor_id)?.nome || 'Fornecedor #' + (fornecedoresDoProduto[0].id_fornecedor || fornecedoresDoProduto[0].fornecedor_id)}
+                        </div>
+                      ) : (
+                        <select
+                          className="form-control"
+                          value={fornecedorSelecionado || ''}
+                          onChange={(e) => setFornecedorSelecionado(e.target.value)}
+                          required
+                          style={{ marginTop: '0.5rem' }}
+                        >
+                          <option value="">Selecione um fornecedor...</option>
+                          {fornecedoresDoProduto.map((vinculo) => {
+                            const fId = vinculo.id_fornecedor || vinculo.fornecedor_id;
+                            const fNome = fornecedores.find(f => f.id == fId)?.nome || `Fornecedor #${fId}`;
+                            const fPreco = vinculo.preco || produtoParaCompra.preco_base;
+                            return (
+                              <option key={fId} value={fId}>
+                                {fNome} {fPreco ? `- R$ ${parseFloat(fPreco).toFixed(2)}` : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <hr />
@@ -838,7 +959,6 @@ function Produtos({ user }) {
                       min="1"
                       value={compraData.quantidade}
                       onChange={(e) => setCompraData({ ...compraData, quantidade: parseInt(e.target.value) || 1 })}
-                      required
                     />
                   </div>
 
@@ -858,21 +978,26 @@ function Produtos({ user }) {
                               logradouro: e.target.value 
                             }
                           })}
-                          required
                         />
                         <input
                           type="text"
                           className="form-control endereco-numero"
                           placeholder="Número"
                           value={compraData.endereco_entrega.numero}
-                          onChange={(e) => setCompraData({ 
-                            ...compraData, 
-                            endereco_entrega: { 
-                              ...compraData.endereco_entrega, 
-                              numero: e.target.value 
-                            }
-                          })}
-                          required
+                          maxLength={8}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          onChange={(e) => {
+                            // Permite apenas números e limita a 8 dígitos
+                            const valor = e.target.value.replace(/\D/g, '').slice(0, 8);
+                            setCompraData({
+                              ...compraData,
+                              endereco_entrega: {
+                                ...compraData.endereco_entrega,
+                                numero: valor
+                              }
+                            });
+                          }}
                         />
                       </div>
                       
@@ -902,7 +1027,6 @@ function Produtos({ user }) {
                               bairro: e.target.value 
                             }
                           })}
-                          required
                         />
                       </div>
                       
@@ -919,7 +1043,6 @@ function Produtos({ user }) {
                               cidade: e.target.value 
                             }
                           })}
-                          required
                         />
                         <select
                           className="form-control endereco-estado"
@@ -931,7 +1054,6 @@ function Produtos({ user }) {
                               estado: e.target.value 
                             }
                           })}
-                          required
                         >
                           <option value="">Estado</option>
                           <option value="AC">AC</option> <option value="AL">AL</option>
@@ -965,22 +1087,9 @@ function Produtos({ user }) {
                             }
                           })}
                           maxLength="9"
-                          required
                         />
                       </div>
                     </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label required">Telefone para Contato</label>
-                    <input
-                      type="tel"
-                      className="form-control"
-                      placeholder="(00) 00000-0000"
-                      value={compraData.telefone_contato}
-                      onChange={(e) => setCompraData({ ...compraData, telefone_contato: e.target.value })}
-                      required
-                    />
                   </div>
 
                   <div className="form-group">
@@ -1007,11 +1116,11 @@ function Produtos({ user }) {
                     </div>
                     <div className="resumo-item">
                       <span>Preço unitário:</span>
-                      <span>R$ {parseFloat(produtoParaCompra.preco_base || 0).toFixed(2)}</span>
+                      <span>R$ {Number(produtoParaCompra?.preco_base || 0).toFixed(2)}</span>
                     </div>
                     <div className="resumo-item total">
                       <span>Total:</span>
-                      <span>R$ {((produtoParaCompra.preco_base || 0) * compraData.quantidade).toFixed(2)}</span>
+                      <span>R$ {(Number(produtoParaCompra?.preco_base || 0) * compraData.quantidade).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

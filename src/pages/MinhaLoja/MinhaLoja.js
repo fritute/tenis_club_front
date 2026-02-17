@@ -440,16 +440,24 @@ const MinhaLoja = ({ user }) => {
             <h2>{loja?.nome || 'Minha Loja'}</h2>
             <p className="loja-email">📧 {loja?.email}</p>
             <div className="loja-status">
-              <span className={`status-badge ${loja?.status === 'ativo' ? 'active' : 'inactive'}`}>
-                {loja?.status === 'ativo' ? '✅ Ativa' : '❌ Inativa'}
-              </span>
-              <button 
-                className={`status-toggle-btn ${loja?.status}`}
-                onClick={toggleStatusLoja}
-                title={`Clique para ${loja?.status === 'ativo' ? 'desativar' : 'ativar'} a loja`}
-              >
-                <i className={`fas fa-${loja?.status === 'ativo' ? 'toggle-on' : 'toggle-off'}`}></i>
-              </button>
+              {(() => {
+                const status = (loja?.status || '').toLowerCase();
+                const isAtivo = status === 'ativo';
+                return (
+                  <>
+                    <span className={`status-badge ${isAtivo ? 'active' : 'inactive'}`}>
+                      {isAtivo ? '✅ Ativa' : '❌ Inativa'}
+                    </span>
+                    <button
+                      className={`status-toggle-btn ${isAtivo ? 'ativo' : 'inativo'}`}
+                      onClick={toggleStatusLoja}
+                      title={`Clique para ${isAtivo ? 'desativar' : 'ativar'} a loja`}
+                    >
+                      <i className={`fas fa-${isAtivo ? 'toggle-on' : 'toggle-off'}`}></i>
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

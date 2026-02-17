@@ -427,33 +427,72 @@
 /* Responsive */
 @media (max-width: 768px) {
   .dashboard-hero {
-    padding: 2rem;
+    padding: 1.5rem;
     flex-direction: column;
     text-align: center;
+    gap: 1.5rem;
   }
-
+  
   .hero-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    justify-content: center;
   }
-
+  
   .hero-icon {
     font-size: 4rem;
-    margin-top: 1rem;
+    position: static;
+    margin-bottom: 1rem;
+    opacity: 0.5;
   }
 
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .stat-card {
+    padding: 1.5rem;
   }
 
   .stat-number {
     font-size: 2rem;
   }
+  
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .system-info {
+    grid-template-columns: 1fr;
+  }
+  
+  .info-banner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
 
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.5rem;
+  }
+  
   .actions-grid {
     grid-template-columns: 1fr;
   }
-
-  .system-info {
-    grid-template-columns: 1fr;
+  
+  .top-fornecedor-item {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+  }
+  
+  .fornecedor-rank {
+    margin-bottom: 0.5rem;
+  }
+  
+  .fornecedor-badge {
+    margin-top: 0.5rem;
   }
 }

@@ -72,7 +72,6 @@ function Layout({ children, user, onLogout }) {
         { path: '/', icon: 'fa-chart-line', label: 'Dashboard' },
         { path: '/fornecedores', icon: 'fa-truck', label: 'Fornecedores' },
         { path: '/produtos', icon: 'fa-shoe-prints', label: 'Produtos' },
-        { path: '/vinculos-produtos', icon: 'fa-link', label: 'Vínculos' },
         { path: '/pedidos', icon: 'fa-shopping-bag', label: 'Meus Pedidos' },
       ];
     }

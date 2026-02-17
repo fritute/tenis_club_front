@@ -8,7 +8,11 @@ import {
   deleteVinculo,
   deleteVinculosEmMassa,
   deleteVinculosPorProduto,
-  getVinculosPorFornecedor
+  getVinculosPorFornecedor,
+  deleteVinculoPorProdutoFornecedor,
+  setVinculoPrincipal,
+  getHistoricoVinculos,
+  getProdutosDisponiveis
 } from '../../services/api';
 import ProdutoImagem from '../../components/ProdutoImagem/ProdutoImagem';
 import './VinculoProdutos.css';
@@ -21,7 +25,8 @@ const VinculoProdutos = ({ user }) => {
   const [produtos, setProdutos] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
   const [vinculos, setVinculos] = useState([]);
-  const [meusVinculos, setMeusVinculos] = useState([]);
+  const [produtosDisponiveis, setProdutosDisponiveis] = useState([]);
+  const [loadingMarketplace, setLoadingMarketplace] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,6 +46,12 @@ const VinculoProdutos = ({ user }) => {
   const [fornecedorSelecionado, setFornecedorSelecionado] = useState(null);
   const [precoFornecedor, setPrecoFornecedor] = useState('');
 
+  // Modal Histórico
+  const [showModalHistorico, setShowModalHistorico] = useState(false);
+  const [historicoData, setHistoricoData] = useState([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const [produtoHistorico, setProdutoHistorico] = useState(null);
+
   const isFornecedor = user?.nivel?.toLowerCase() === 'fornecedor';
   const isExecutivo = user?.nivel?.toLowerCase() === 'executivo';
 
@@ -52,41 +63,33 @@ const VinculoProdutos = ({ user }) => {
     try {
       setLoading(true);
       setError('');
-      
+
       // Carregar produtos disponíveis
       const responseProdutos = await getProdutos();
-      const produtosArray = Array.isArray(responseProdutos) 
-        ? responseProdutos 
+      const produtosArray = Array.isArray(responseProdutos)
+        ? responseProdutos
         : (responseProdutos?.produtos || responseProdutos?.data || []);
       setProdutos(produtosArray);
-      
+
       // Carregar fornecedores disponíveis
       const responseFornecedores = await getFornecedores();
       const fornecedoresArray = Array.isArray(responseFornecedores)
         ? responseFornecedores
         : (responseFornecedores?.fornecedores || responseFornecedores?.data || []);
       setFornecedores(fornecedoresArray);
-      
+
       // Carregar todos os vínculos
       try {
         const todosVinculos = await getVinculos();
-        setVinculos(todosVinculos);
+        const novosVinculos = Array.isArray(todosVinculos) ? [...todosVinculos] : ([...(todosVinculos?.data || [])]);
+        setVinculos(novosVinculos);
+        console.log('[VinculoProdutos] Vínculos atualizados:', novosVinculos);
       } catch (e) {
         console.log('[Vinculos] Erro ao carregar vínculos:', e);
         setVinculos([]);
       }
-      
-      // Se for fornecedor, carregar vínculos da sua loja
-      if (isFornecedor && user?.loja?.id) {
-        try {
-          const vinculosFornecedor = await getVinculosPorFornecedor(user.loja.id);
-          setMeusVinculos(vinculosFornecedor);
-        } catch (e) {
-          console.log('[Vinculos] Erro ao carregar meus vínculos:', e);
-          setMeusVinculos([]);
-        }
-      }
-      
+
+
     } catch (err) {
       console.error('[VinculoProdutos] Erro ao carregar dados:', err);
       setError('⚠️ Erro ao carregar dados');
@@ -94,6 +97,27 @@ const VinculoProdutos = ({ user }) => {
       setLoading(false);
     }
   };
+
+  const carregarMarketplace = async () => {
+    if (!isFornecedor) return;
+    
+    try {
+      setLoadingMarketplace(true);
+      const disponiveis = await getProdutosDisponiveis();
+      setProdutosDisponiveis(Array.isArray(disponiveis) ? disponiveis : []);
+    } catch (err) {
+      console.error('Erro ao carregar marketplace:', err);
+      // Não exibimos erro global para não atrapalhar a navegação, apenas log
+    } finally {
+      setLoadingMarketplace(false);
+    }
+  };
+
+  useEffect(() => {
+    if (abaAtiva === 'marketplace' && isFornecedor) {
+      carregarMarketplace();
+    }
+  }, [abaAtiva, isFornecedor]);
 
   const abrirModalVinculo = (produto = null) => {
     setProdutoSelecionado(produto);
@@ -142,6 +166,7 @@ const VinculoProdutos = ({ user }) => {
       
       setSuccess('✅ Vínculo criado com sucesso!');
       carregarDados();
+      if (isFornecedor) carregarMarketplace();
       
       setTimeout(() => {
         fecharModal();
@@ -153,17 +178,27 @@ const VinculoProdutos = ({ user }) => {
     }
   };
 
-  const removerVinculo = async (vinculoId, nomeProduto) => {
+  const removerVinculo = async (vinculo) => {
+    const produto = getProdutoById(vinculo.id_produto);
+    const nomeProduto = produto?.nome || `Produto #${vinculo.id_produto}`;
+    
     if (!window.confirm(`Tem certeza que deseja remover o vínculo com "${nomeProduto}"?`)) return;
     
+    setError('');
+    setSuccess('');
+
     try {
-      await deleteVinculo(vinculoId);
+      // Usar a função de deleção que o backend espera, com id_produto e id_fornecedor
+      await deleteVinculoPorProdutoFornecedor(vinculo.id_produto, vinculo.id_fornecedor);
+      
+      setVinculos(prev => prev.filter(v => v.id !== vinculo.id)); // Remove localmente
       setSuccess(`✅ Vínculo removido!`);
-      carregarDados();
+      
       setTimeout(() => setSuccess(''), 3000);
+
     } catch (err) {
       console.error('[VinculoProdutos] Erro ao remover vínculo:', err);
-      setError('❌ Erro ao remover vínculo');
+      setError(err.message || '❌ Erro ao remover vínculo');
     }
   };
 
@@ -200,32 +235,54 @@ const VinculoProdutos = ({ user }) => {
       return;
     }
 
-    const qtd = vinculosSelecionados.length;
+    // Buscar os objetos completos dos vínculos selecionados
+    const vinculosParaRemover = vinculos.filter(v => vinculosSelecionados.includes(v.id));
+    // Filtrar apenas vínculos válidos
+    const vinculosValidos = vinculosParaRemover.filter(v => v.id_produto && v.id_fornecedor);
+    const qtd = vinculosValidos.length;
+    if (qtd === 0) {
+      setError('Nenhum vínculo válido selecionado para remover');
+      return;
+    }
     if (!window.confirm(`Tem certeza que deseja remover ${qtd} vínculo(s)?`)) return;
 
     try {
       setRemovendoEmMassa(true);
       setError('');
-      
-      const resultado = await deleteVinculosEmMassa(vinculosSelecionados);
-      
-      // Verificar resultado
-      const sucessos = resultado?.sucesso?.length || qtd;
-      const falhas = resultado?.falhas?.length || 0;
-      
-      if (falhas > 0) {
-        setSuccess(`✅ ${sucessos} vínculos removidos. ⚠️ ${falhas} falharam.`);
+      setSuccess('');
+
+      const resultado = await deleteVinculosEmMassa(vinculosValidos);
+
+      // Se o resultado for um objeto com sucesso/falhas, é fallback (remoção um a um)
+      let sucessos = qtd;
+      let falhas = 0;
+      let idsRemovidos = vinculosValidos.map(v => v.id);
+
+      if (resultado && typeof resultado === 'object' && ('sucesso' in resultado || 'falhas' in resultado)) {
+        sucessos = resultado.sucesso?.length || 0;
+        falhas = resultado.falhas?.length || 0;
+        idsRemovidos = resultado.sucesso || []; // Garante que temos os IDs corretos
+
+        if (falhas > 0) {
+          setSuccess(`✅ ${sucessos} vínculos removidos. ⚠️ ${falhas} falharam.`);
+        } else {
+          setSuccess(`✅ ${sucessos} vínculos removidos com sucesso!`);
+        }
+        if (resultado.falhas?.length > 0) {
+          console.warn('[VinculoProdutos] Falhas ao remover vínculos:', resultado.falhas);
+        }
       } else {
-        setSuccess(`✅ ${sucessos} vínculos removidos com sucesso!`);
+        setSuccess(`✅ ${qtd} vínculos removidos com sucesso!`);
       }
-      
+
+      setVinculos(prev => prev.filter(v => !idsRemovidos.includes(v.id)));
       setVinculosSelecionados([]);
-      carregarDados();
-      setTimeout(() => setSuccess(''), 4000);
       
+      setTimeout(() => setSuccess(''), 4000);
+
     } catch (err) {
       console.error('[VinculoProdutos] Erro na remoção em massa:', err);
-      setError('❌ Erro ao remover vínculos em massa');
+      setError(err.message || '❌ Erro ao remover vínculos em massa');
     } finally {
       setRemovendoEmMassa(false);
     }
@@ -246,8 +303,9 @@ const VinculoProdutos = ({ user }) => {
       setError('');
       await deleteVinculosPorProduto(produto.id);
       
+      setVinculos(prev => prev.filter(v => v.id_produto !== produto.id)); // Remove localmente
+      
       setSuccess(`✅ Todos os vínculos do produto "${produto.nome}" foram removidos!`);
-      carregarDados();
       setTimeout(() => setSuccess(''), 4000);
       
     } catch (err) {
@@ -319,6 +377,62 @@ const VinculoProdutos = ({ user }) => {
       console.error('[VinculoProdutos] Erro ao criar vínculos múltiplos:', err);
       setError(err.message || '❌ Erro ao criar vínculos múltiplos');
     }
+  };
+
+  // Funções de Fornecedor Principal e Histórico
+  const definirPrincipal = async (vinculo) => {
+    try {
+      setError('');
+      setSuccess('');
+      
+      console.log(`[Vinculos] Definindo principal: Produto ${vinculo.id_produto}, Fornecedor ${vinculo.id_fornecedor}`);
+      await setVinculoPrincipal(vinculo.id_produto, vinculo.id_fornecedor);
+      
+      // Atualizar estado local para refletir a mudança imediatamente
+      setVinculos(prev => prev.map(v => {
+        // Se for do mesmo produto
+        if (v.id_produto === vinculo.id_produto) {
+          return {
+            ...v,
+            // Marca como principal se for o fornecedor escolhido, desmarca os outros
+            principal: v.id_fornecedor === vinculo.id_fornecedor
+          };
+        }
+        return v;
+      }));
+      
+      setSuccess('✅ Fornecedor definido como principal com sucesso!');
+      setTimeout(() => setSuccess(''), 3000);
+      
+    } catch (err) {
+      console.error('[VinculoProdutos] Erro ao definir principal:', err);
+      setError(err.message || '❌ Erro ao definir fornecedor principal');
+    }
+  };
+
+  const verHistorico = async (produto) => {
+    setProdutoHistorico(produto);
+    setShowModalHistorico(true);
+    setLoadingHistorico(true);
+    setHistoricoData([]);
+    setError('');
+
+    try {
+      console.log(`[Vinculos] Buscando histórico para produto: ${produto.id}`);
+      const dados = await getHistoricoVinculos(produto.id);
+      setHistoricoData(Array.isArray(dados) ? dados : (dados?.data || []));
+    } catch (err) {
+      console.error('[VinculoProdutos] Erro ao carregar histórico:', err);
+      setError('Erro ao carregar histórico de vínculos');
+    } finally {
+      setLoadingHistorico(false);
+    }
+  };
+  
+  const fecharModalHistorico = () => {
+    setShowModalHistorico(false);
+    setProdutoHistorico(null);
+    setHistoricoData([]);
   };
 
   const produtosFiltrados = () => {
@@ -429,15 +543,24 @@ const VinculoProdutos = ({ user }) => {
           <i className="fas fa-box"></i> Por Produto
         </button>
         {isFornecedor && (
-          <button 
-            className={`tab-btn ${abaAtiva === 'meus' ? 'active' : ''}`}
-            onClick={() => setAbaAtiva('meus')}
-          >
-            <i className="fas fa-store"></i> Meus Vínculos
-            {meusVinculos.length > 0 && (
-              <span className="badge">{meusVinculos.length}</span>
-            )}
-          </button>
+          <>
+            <button 
+              className={`tab-btn ${abaAtiva === 'meus' ? 'active' : ''}`}
+              onClick={() => setAbaAtiva('meus')}
+            >
+              <i className="fas fa-store"></i> Meus Vínculos
+              {vinculos.filter(v => v.id_fornecedor === user?.loja?.id).length > 0 && (
+                <span className="badge">{vinculos.filter(v => v.id_fornecedor === user?.loja?.id).length}</span>
+              )}
+            </button>
+            <button 
+              className={`tab-btn ${abaAtiva === 'marketplace' ? 'active' : ''}`}
+              onClick={() => setAbaAtiva('marketplace')}
+            >
+              <i className="fas fa-cart-plus"></i> Marketplace
+              <span className="badge-new">Novo</span>
+            </button>
+          </>
         )}
       </div>
 
@@ -583,10 +706,21 @@ const VinculoProdutos = ({ user }) => {
                         </td>
                         {(isFornecedor || isExecutivo) && (
                           <td>
+                            {isExecutivo && (
+                              <button
+                                className={`btn btn-sm ${vinculo.principal ? 'btn-warning' : 'btn-outline-secondary'}`}
+                                onClick={() => definirPrincipal(vinculo)}
+                                title={vinculo.principal ? 'Fornecedor Principal' : 'Definir como Principal'}
+                                style={{ marginRight: '5px' }}
+                              >
+                                <i className={`fas fa-star`}></i>
+                              </button>
+                            )}
+                            
                             {podeRemover && (
                               <button 
                                 className="btn btn-sm btn-outline-danger"
-                                onClick={() => removerVinculo(vinculo.id, produto?.nome)}
+                                onClick={() => removerVinculo(vinculo)}
                               >
                                 <i className="fas fa-trash"></i>
                               </button>
@@ -646,8 +780,22 @@ const VinculoProdutos = ({ user }) => {
                           {vinculosProduto.map(v => {
                             const forn = getFornecedorById(v.id_fornecedor);
                             return (
-                              <span key={v.id} className="fornecedor-tag">
+                              <span key={v.id} className={`fornecedor-tag ${v.principal ? 'principal' : ''}`}>
                                 {forn?.nome || `#${v.id_fornecedor}`}
+                                {v.principal && <i className="fas fa-star" style={{ color: '#f59e0b', marginLeft: '5px' }} title="Principal"></i>}
+                                
+                                {isExecutivo && !v.principal && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      definirPrincipal(v);
+                                    }}
+                                    title="Definir como Principal"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', marginLeft: '5px' }}
+                                  >
+                                    <i className="far fa-star"></i>
+                                  </button>
+                                )}
                                 <small>{formatarValor(v.preco_fornecedor)}</small>
                               </span>
                             );
@@ -671,16 +819,24 @@ const VinculoProdutos = ({ user }) => {
                       </div>
                     )}
                     
-                    {/* Botão de remover todos os vínculos (Executivo) */}
+                    {/* Ações Administrativas (Executivo) */}
                     {isExecutivo && vinculosProduto.length > 0 && (
-                      <div className="item-actions">
+                      <div className="item-actions" style={{ display: 'flex', gap: '5px' }}>
+                        <button
+                          className="btn btn-info btn-sm"
+                          onClick={() => verHistorico(produto)}
+                          title="Ver Histórico de Vínculos"
+                          style={{ color: 'white' }}
+                        >
+                          <i className="fas fa-history"></i> Histórico
+                        </button>
+                        
                         <button
                           className="btn btn-danger btn-sm"
                           onClick={() => removerVinculosPorProduto(produto)}
                           title={`Remover todos os ${vinculosProduto.length} vínculos`}
                         >
-                          <i className="fas fa-trash"></i>
-                          Limpar Vínculos ({vinculosProduto.length})
+                          <i className="fas fa-trash"></i> Limpar
                         </button>
                       </div>
                     )}
@@ -696,18 +852,16 @@ const VinculoProdutos = ({ user }) => {
       {abaAtiva === 'meus' && isFornecedor && (
         <div className="tab-content">
           <h3><i className="fas fa-store"></i> Meus Produtos Vinculados</h3>
-          
-          {meusVinculos.length === 0 ? (
+          {vinculos.filter(v => v.id_fornecedor === user?.loja?.id).length === 0 ? (
             <div className="empty-state">
               <i className="fas fa-unlink fa-2x"></i>
               <h4>Você ainda não vinculou produtos</h4>
-              <p>Vá na aba "Por Produto" e vincule produtos ao seu catálogo.</p>
+              <p>Vá na aba "Marketplace" para encontrar novos produtos para vender.</p>
             </div>
           ) : (
             <div className="vinculos-list">
-              {meusVinculos.map(vinculo => {
+              {vinculos.filter(v => v.id_fornecedor === user?.loja?.id).map(vinculo => {
                 const produto = getProdutoById(vinculo.id_produto);
-                
                 return (
                   <div key={vinculo.id} className="vinculo-item">
                     <div className="vinculo-image">
@@ -731,7 +885,7 @@ const VinculoProdutos = ({ user }) => {
                     </div>
                     <button 
                       className="btn btn-outline-danger btn-sm"
-                      onClick={() => removerVinculo(vinculo.id, produto?.nome)}
+                      onClick={() => removerVinculo(vinculo)}
                     >
                       <i className="fas fa-unlink"></i>
                       Desvincular
@@ -739,6 +893,64 @@ const VinculoProdutos = ({ user }) => {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Aba: MARKETPLACE (Novos Produtos) */}
+      {abaAtiva === 'marketplace' && isFornecedor && (
+        <div className="tab-content">
+          <div className="marketplace-header">
+            <h3><i className="fas fa-cart-plus"></i> Marketplace de Produtos</h3>
+            <p>Encontre novos produtos para adicionar ao seu catálogo de vendas.</p>
+          </div>
+          
+          {loadingMarketplace ? (
+            <div className="vinculo-loading">
+              <i className="fas fa-spinner fa-spin fa-2x"></i>
+              <p>Buscando oportunidades...</p>
+            </div>
+          ) : produtosDisponiveis.length === 0 ? (
+            <div className="empty-state">
+              <i className="fas fa-box-open fa-2x"></i>
+              <h4>Nenhum produto novo disponível</h4>
+              <p>No momento, não há novos produtos disponíveis para vínculo.</p>
+            </div>
+          ) : (
+            <div className="items-grid">
+              {produtosDisponiveis
+                .filter(p => !termoBusca || p.nome.toLowerCase().includes(termoBusca.toLowerCase()))
+                .map(produto => (
+                <div key={produto.id} className="item-card marketplace-card">
+                  <div className="card-badge-new">Novo</div>
+                  <ProdutoImagem 
+                    produtoId={produto.id}
+                    produtoNome={produto.nome}
+                    size="banner"
+                    className="item-image-wrapper"
+                  />
+                  
+                  <div className="item-info">
+                    <h4>{produto.nome}</h4>
+                    <p className="item-categoria">
+                      {typeof produto.categoria === 'object' ? produto.categoria?.nome : produto.categoria}
+                    </p>
+                    <p className="item-preco">{formatarValor(produto.preco)}</p>
+                    <p className="item-desc">{produto.descricao}</p>
+                  </div>
+                  
+                  <div className="item-actions">
+                    <button
+                      className="btn btn-success btn-block"
+                      onClick={() => abrirModalVinculo(produto)}
+                    >
+                      <i className="fas fa-plus-circle"></i>
+                      Quero Vender
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -776,7 +988,7 @@ const VinculoProdutos = ({ user }) => {
                     onChange={(e) => {
                       const prod = produtos.find(p => p.id === parseInt(e.target.value));
                       setProdutoSelecionado(prod);
-                      if (prod) setPrecoFornecedor(prod.preco);
+                      if (prod) setPrecoFornecedor(prod.preco || '');
                     }}
                     className="form-control"
                   >
@@ -926,6 +1138,77 @@ const VinculoProdutos = ({ user }) => {
               <button className="btn btn-primary" onClick={criarVinculosMultiplos}>
                 <i className="fas fa-plus-circle"></i>
                 Criar Vínculos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Histórico */}
+      {showModalHistorico && (
+        <div className="modal-overlay" onClick={fecharModalHistorico}>
+          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>
+                <i className="fas fa-history"></i>
+                Histórico de Vínculos: {produtoHistorico?.nome}
+              </h4>
+              <button className="modal-close" onClick={fecharModalHistorico}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              {loadingHistorico ? (
+                <div className="vinculo-loading">
+                  <i className="fas fa-spinner fa-spin fa-2x"></i>
+                  <p>Carregando histórico...</p>
+                </div>
+              ) : historicoData.length === 0 ? (
+                <div className="empty-state">
+                  <i className="fas fa-history fa-2x"></i>
+                  <h4>Nenhum histórico encontrado</h4>
+                  <p>Não há registros de alterações para este produto.</p>
+                </div>
+              ) : (
+                <div className="vinculos-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Data/Hora</th>
+                        <th>Ação</th>
+                        <th>Fornecedor</th>
+                        <th>Usuário</th>
+                        <th>Detalhes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historicoData.map((hist, index) => (
+                        <tr key={index}>
+                          <td>{new Date(hist.created_at || hist.data_acao).toLocaleString()}</td>
+                          <td>
+                            <span className={`status-badge ${
+                              (hist.acao === 'CRIACAO' || hist.acao === 'ADICAO') ? 'ativo' : 
+                              (hist.acao === 'REMOCAO' || hist.acao === 'EXCLUSAO') ? 'inativo' : 
+                              'warning'
+                            }`}>
+                              {hist.acao}
+                            </span>
+                          </td>
+                          <td>{hist.fornecedor_nome || `#${hist.id_fornecedor}`}</td>
+                          <td>{hist.usuario_nome || 'Sistema'}</td>
+                          <td>{hist.detalhes || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            
+            <div className="modal-actions">
+              <button className="btn btn-primary" onClick={fecharModalHistorico}>
+                Fechar
               </button>
             </div>
           </div>

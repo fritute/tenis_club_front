@@ -29,18 +29,32 @@ const Register = ({ onRegisterSuccess, onBackToLogin }) => {
   };
 
   const validateStep1 = () => {
+    // Validar Nome (mínimo 3 letras, apenas letras e espaços)
     if (!formData.nome.trim()) {
       setError('Nome é obrigatório');
       return false;
     }
+    if (formData.nome.trim().length < 3) {
+      setError('Nome deve ter pelo menos 3 letras');
+      return false;
+    }
+    if (!/^[A-Za-zÀ-ÿ\s]+$/.test(formData.nome)) {
+      setError('Nome deve conter apenas letras');
+      return false;
+    }
+
+    // Validar Email
     if (!formData.email.trim()) {
       setError('E-mail é obrigatório');
       return false;
     }
-    if (!formData.email.includes('@')) {
-      setError('E-mail inválido');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Por favor, insira um e-mail válido (ex: nome@email.com)');
       return false;
     }
+
+    // Validar Senha
     if (!formData.senha) {
       setError('Senha é obrigatória');
       return false;
@@ -53,6 +67,26 @@ const Register = ({ onRegisterSuccess, onBackToLogin }) => {
       setError('Senhas não conferem');
       return false;
     }
+
+    return true;
+  };
+
+  const validateStep2 = () => {
+    // Validar Telefone (apenas números, 10 ou 11 dígitos)
+    if (formData.telefone) {
+      const telNumeros = formData.telefone.replace(/\D/g, '');
+      if (telNumeros.length < 10 || telNumeros.length > 11) {
+        setError('Telefone inválido. Use o formato (DDD) 99999-9999');
+        return false;
+      }
+    }
+
+    // Validar Endereço (mínimo 5 caracteres se preenchido)
+    if (formData.endereco && formData.endereco.trim().length < 5) {
+      setError('Endereço muito curto. Por favor detalhe mais.');
+      return false;
+    }
+
     return true;
   };
 
@@ -68,7 +102,9 @@ const Register = ({ onRegisterSuccess, onBackToLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateStep1()) return;
+    // Valida passo atual antes de enviar
+    if (step === 1 && !validateStep1()) return;
+    if (step === 2 && !validateStep2()) return;
     
     setLoading(true);
     $('.register-btn').addClass('loading');
@@ -270,8 +306,17 @@ const Register = ({ onRegisterSuccess, onBackToLogin }) => {
                   id="telefone"
                   name="telefone"
                   value={formData.telefone}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    // Máscara de telefone simples (DDD) 99999-9999
+                    let v = e.target.value.replace(/\D/g, "");
+                    if (v.length > 11) v = v.substring(0, 11);
+                    if (v.length > 2) v = `(${v.substring(0, 2)}) ${v.substring(2)}`;
+                    if (v.length > 9) v = `${v.substring(0, 9)}-${v.substring(9)}`;
+                    
+                    handleChange({ target: { name: 'telefone', value: v } });
+                  }}
                   placeholder="(11) 99999-9999"
+                  maxLength="15"
                 />
               </div>
 

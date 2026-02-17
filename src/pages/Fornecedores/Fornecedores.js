@@ -205,6 +205,21 @@ function Fornecedores({ user }) {
     }
   };
 
+  const handleComprarProduto = (produto) => {
+    console.log('[Fornecedores] Redirecionando para página de produtos com produto selecionado:', produto);
+    
+    // Fechar modal antes de navegar
+    closeDetalhesModal();
+    
+    // Navegar para a página de produtos passando o produto selecionado no state
+    // Isso permite que a página de produtos abra já com o modal de compra desse produto
+    navigate('/produtos', { 
+      state: { 
+        produtoParaComprar: produto,
+        fornecedorPreSelecionado: fornecedorSelecionado 
+      } 
+    });
+  };
   // Função para carregar imagens dos produtos do fornecedor
   const loadImagensFornecedor = async (produtosList) => {
     try {
@@ -626,18 +641,21 @@ function Fornecedores({ user }) {
                             </span>
                           </div>
                         </div>
-                        {user?.nivel?.toLowerCase() === 'comum' && (
-                          <div className="produto-actions">
-                            <button className="btn btn-sm btn-primary">
-                              <i className="fas fa-shopping-cart"></i>
-                              Comprar
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                {user?.nivel?.toLowerCase() === 'comum' && (
+                  <div className="produto-actions-modal">
+                    <button 
+                      className="btn btn-primary btn-block"
+                      onClick={() => handleComprarProduto(produto)}
+                    >
+                      <i className="fas fa-shopping-cart"></i>
+                      Ver Produto Disponível
+                    </button>
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
               </div>
             </div>
 

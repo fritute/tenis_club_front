@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProdutos, addProdutoMinhaLoja, updateProduto, deleteProduto, getCategorias } from '../../../services/api';
+import { getProdutos, getMeusProdutos, addProdutoMinhaLoja, updateProduto, deleteProduto, getCategorias, deleteVinculoPorProdutoFornecedor } from '../../../services/api';
 import ProdutoImagem from '../../../components/ProdutoImagem/ProdutoImagem';
 import $ from 'jquery';
 import './MinhaLojaProdutos.css';
@@ -11,6 +11,7 @@ const MinhaLojaProdutos = ({ loja }) => {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [showReloginModal, setShowReloginModal] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     descricao: '',
@@ -29,8 +30,9 @@ const MinhaLojaProdutos = ({ loja }) => {
       setLoading(true);
       
       // Carregar produtos e categorias em paralelo
+      // Usar getMeusProdutos() para buscar próprios + vinculados
       const [produtosResponse, categoriasResponse] = await Promise.all([
-        getProdutos({ loja_id: loja?.id }),
+        getMeusProdutos(),
         getCategorias()
       ]);
       
@@ -137,19 +139,30 @@ const MinhaLojaProdutos = ({ loja }) => {
           throw new Error('🏷️ Categoria é obrigatória');
         }
 
-        const produtoData = new FormData();
-        produtoData.append('nome', formData.nome.trim());
-        produtoData.append('descricao', formData.descricao.trim());
-        produtoData.append('preco', formData.preco.replace(/[^0-9,]/g, '').replace(',', '.'));
-        produtoData.append('categoria', formData.categoria);
-        produtoData.append('estoque', formData.estoque || '0');
-        produtoData.append('loja_id', loja.id);
+        const precoNumerico = formData.preco.replace(/[^0-9,]/g, '').replace(',', '.');
         
-        if (formData.imagem) {
-          produtoData.append('imagem', formData.imagem);
-        }
+        // Formatar dados para JSON em vez de FormData para evitar problemas de tipo
+        const produtoUpdateData = {
+          nome: formData.nome.trim(),
+          descricao: formData.descricao.trim(),
+          preco: parseFloat(precoNumerico),
+          preco_base: parseFloat(precoNumerico),
+          categoria_id: parseInt(formData.categoria), // Importante: usar categoria_id
+          estoque: parseInt(formData.estoque || '0'),
+          loja_id: loja.id
+        };
 
-        await updateProduto(editingProduct.id, produtoData);
+        // Se houver imagem, enviar separadamente ou em outro momento
+        // Por enquanto, focar em fazer o update dos dados funcionar
+        
+        console.log('[MinhaLojaProdutos] ✏️ Atualizando produto:', produtoUpdateData);
+        await updateProduto(editingProduct.id, produtoUpdateData);
+        
+        // Se tiver imagem nova, fazer upload separado
+        if (formData.imagem) {
+            // Implementar upload de imagem separado se necessário
+            console.log('[MinhaLojaProdutos] 🖼️ Imagem detectada, mas upload deve ser feito via endpoint específico');
+        }
       } else {
         // CRIAÇÃO - usar endpoint simplificado da minha loja
         console.log('[MinhaLojaProdutos] 🆕 Criando produto simplificado na minha loja');
@@ -167,7 +180,9 @@ const MinhaLojaProdutos = ({ loja }) => {
           produtoSimplificado.descricao = formData.descricao.trim();
         }
         if (formData.preco) {
-          produtoSimplificado.preco = parseFloat(formData.preco.replace(/[^0-9,]/g, '').replace(',', '.'));
+          const precoNumerico = parseFloat(formData.preco.replace(/[^0-9,]/g, '').replace(',', '.'));
+          produtoSimplificado.preco = precoNumerico;
+          produtoSimplificado.preco_base = precoNumerico; // Garante compatibilidade
         }
         if (formData.categoria) {
           produtoSimplificado.categoria = formData.categoria;
@@ -187,8 +202,77 @@ const MinhaLojaProdutos = ({ loja }) => {
       carregarDados();
     } catch (err) {
       console.error('[MinhaLojaProdutos] Erro ao salvar produto:', err);
+      
+      // Verificar se é erro de token desatualizado
+      if (err.message === 'TOKEN_DESATUALIZADO') {
+        setShowReloginModal(true);
+        closeModal();
+        return;
+      }
+      
       setError(err.message || '❌ Erro ao salvar produto');
     }
+  };
+
+  // Forçar logout para obter novo token
+  const handleForcarRelogin = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
+  const handleUnlink = async (produto) => {
+    // Usar jQuery para modal de confirmação
+    const $modal = $(`
+      <div class="delete-modal-overlay">
+        <div class="delete-modal">
+          <h4><i class="fas fa-unlink"></i> Confirmar Desvinculação</h4>
+          <p>Deseja remover "${produto.nome}" da sua lista de vendas?</p>
+          <div class="modal-buttons">
+            <button class="btn btn-outline-secondary cancel-btn">Cancelar</button>
+            <button class="btn btn-danger confirm-btn">Desvincular</button>
+          </div>
+        </div>
+      </div>
+    `);
+    
+    $('body').append($modal);
+    setTimeout(() => $modal.addClass('show'), 50);
+    
+    $modal.find('.cancel-btn').on('click', () => {
+      $modal.removeClass('show');
+      setTimeout(() => $modal.remove(), 300);
+    });
+    
+    $modal.find('.confirm-btn').on('click', async () => {
+      try {
+        await deleteVinculoPorProdutoFornecedor(produto.id, loja.id);
+        carregarDados();
+        
+        $modal.removeClass('show');
+        setTimeout(() => $modal.remove(), 300);
+        
+        // Mostrar sucesso
+        const $success = $('<div class="success-toast"><i class="fas fa-check"></i>Produto desvinculado com sucesso!</div>');
+        $('body').append($success);
+        setTimeout(() => $success.addClass('show'), 100);
+        setTimeout(() => {
+          $success.removeClass('show');
+          setTimeout(() => $success.remove(), 300);
+        }, 3000);
+        
+      } catch (err) {
+        console.error('[MinhaLojaProdutos] Erro ao desvincular produto:', err);
+        
+        const $error = $('<div class="error-toast"><i class="fas fa-times"></i>Erro ao desvincular produto</div>');
+        $('body').append($error);
+        setTimeout(() => $error.addClass('show'), 100);
+        setTimeout(() => {
+          $error.removeClass('show');
+          setTimeout(() => $error.remove(), 300);
+        }, 3000);
+      }
+    });
   };
 
   const handleDelete = async (produtoId) => {
@@ -294,14 +378,24 @@ const MinhaLojaProdutos = ({ loja }) => {
         </div>
       ) : (
         <div className="produtos-grid">
-          {produtos.map(produto => (
+          {produtos.map(produto => {
+            const isOwner = produto.fornecedor_id === loja?.id;
+            
+            return (
             <div key={produto.id} className="produto-card">
-              <ProdutoImagem 
-                produtoId={produto.id}
-                produtoNome={produto.nome}
-                size="medium"
-                className="produto-card-imagem"
-              />
+              <div className="produto-card-header">
+                <ProdutoImagem 
+                  produtoId={produto.id}
+                  produtoNome={produto.nome}
+                  size="medium"
+                  className="produto-card-imagem"
+                />
+                {!isOwner && (
+                  <span className="badge-revenda" title="Produto de outro fornecedor (Revenda)">
+                    <i className="fas fa-exchange-alt"></i> Revenda
+                  </span>
+                )}
+              </div>
               
               <div className="produto-info">
                 <h5>{produto.nome}</h5>
@@ -324,23 +418,45 @@ const MinhaLojaProdutos = ({ loja }) => {
               </div>
               
               <div className="produto-actions">
-                <button 
-                  className="btn btn-outline-primary btn-sm"
-                  onClick={() => openModal(produto)}
-                  title="Editar"
-                >
-                  <i className="fas fa-edit"></i>
-                </button>
-                <button 
-                  className="btn btn-outline-danger btn-sm"
-                  onClick={() => handleDelete(produto.id)}
-                  title="Excluir"
-                >
-                  <i className="fas fa-trash"></i>
-                </button>
+                {isOwner ? (
+                  <>
+                    <button 
+                      className="btn btn-outline-primary btn-sm"
+                      onClick={() => openModal(produto)}
+                      title="Editar"
+                    >
+                      <i className="fas fa-edit"></i>
+                    </button>
+                    <button 
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => handleDelete(produto.id)}
+                      title="Excluir"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      className="btn btn-outline-secondary btn-sm"
+                      disabled
+                      title="Gerencie este produto na tela de Vínculos"
+                    >
+                      <i className="fas fa-lock"></i>
+                    </button>
+                    <button 
+                      className="btn btn-outline-warning btn-sm"
+                      onClick={() => handleUnlink(produto)}
+                      title="Desvincular (Remover da lista)"
+                    >
+                      <i className="fas fa-unlink"></i>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
 
@@ -485,6 +601,38 @@ const MinhaLojaProdutos = ({ loja }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Relogin Necessário */}
+      {showReloginModal && (
+        <div className="modal-overlay relogin-modal-overlay">
+          <div className="modal-content relogin-modal">
+            <div className="relogin-icon">
+              <i className="fas fa-sync-alt"></i>
+            </div>
+            <h3>Atualização Necessária</h3>
+            <p>
+              Sua loja foi cadastrada, mas suas permissões precisam ser atualizadas.
+              <br /><br />
+              <strong>Faça login novamente</strong> para poder cadastrar produtos.
+            </p>
+            <div className="relogin-actions">
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowReloginModal(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={handleForcarRelogin}
+              >
+                <i className="fas fa-sign-in-alt"></i>
+                Fazer Login Novamente
+              </button>
+            </div>
           </div>
         </div>
       )}

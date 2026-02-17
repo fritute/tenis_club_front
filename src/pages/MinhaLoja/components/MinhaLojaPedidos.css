@@ -408,63 +408,104 @@
 /* ===== RESPONSIVIDADE ===== */
 @media (max-width: 768px) {
   .status-cards {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 
   .pedidos-filters {
     flex-direction: column;
     align-items: stretch;
+    padding: 1rem;
   }
 
   .filter-select {
     max-width: none;
+    width: 100%;
   }
 
   .pedido-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 15px;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .pedido-info {
+    width: 100%;
+  }
+
+  .pedido-numero {
+    justify-content: space-between;
+    width: 100%;
   }
 
   .pedido-resumo {
     flex-direction: row;
     justify-content: space-between;
     margin: 0;
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
   }
 
   .produto-item {
     grid-template-columns: 1fr;
-    gap: 8px;
-    text-align: center;
+    gap: 0.5rem;
+    text-align: left;
+    padding: 1rem;
   }
+
+  .produto-quantidade,
+  .produto-preco,
+  .produto-total {
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  /* Labels para mobile */
+  .produto-quantidade::before { content: "Qtd:"; font-weight: 600; }
+  .produto-preco::before { content: "Preço:"; font-weight: 600; }
+  .produto-total::before { content: "Total:"; font-weight: 600; }
 
   .pedido-actions {
     flex-direction: column;
-    gap: 15px;
+    gap: 1rem;
+    align-items: stretch;
+    padding: 1rem;
+  }
+
+  .status-selector {
+    flex-direction: column;
     align-items: stretch;
   }
 
   .action-buttons {
-    justify-content: center;
+    flex-direction: column;
+  }
+  
+  .action-buttons .btn {
+    width: 100%;
   }
 }
 
 @media (max-width: 480px) {
   .status-cards {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .status-card {
-    padding: 15px;
+    padding: 1rem;
   }
 
-  .pedido-detalhes,
-  .pedido-header {
-    padding: 15px;
+  .pedido-detalhes {
+    padding: 1rem;
   }
-
-  .pedido-actions {
-    padding: 15px;
+  
+  .pedido-resumo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 }
 

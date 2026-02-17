@@ -863,3 +863,105 @@
     margin-top: 10px;
   }
 }
+
+/* 
+   NOVAS CLASSES ADICIONADAS 
+   Botão de Estrela (Principal) 
+*/
+.btn-link-principal {
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+  padding: 0 4px;
+}
+
+.btn-link-principal:hover {
+  transform: scale(1.2);
+  color: #f59e0b !important; /* Amarelo ao passar o mouse */
+}
+
+.fornecedor-tag.principal {
+  background-color: #fef3c7; /* Fundo amarelo claro */
+  color: #d97706; /* Texto laranja escuro */
+  border: 1px solid #fcd34d;
+}
+
+.btn-warning {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+}
+
+.btn-warning:hover {
+  background-color: #d97706;
+}
+
+.text-warning {
+  color: #f59e0b !important;
+}
+
+.text-muted {
+  color: #9ca3af !important;
+}
+
+.status-badge.warning {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+/* Marketplace */
+.marketplace-header {
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.marketplace-header h3 {
+  color: #1a1a2e;
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.marketplace-header p {
+  color: #6b7280;
+}
+
+.marketplace-card {
+  position: relative;
+  border: 1px solid #e5e7eb;
+}
+
+.card-badge-new {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.badge-new {
+  background: #10b981;
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.item-desc {
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

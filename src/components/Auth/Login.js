@@ -224,29 +224,6 @@ function Login({ onLogin, onShowRegister }) {
             </button>
           </form>
 
-          <div className="demo-users">
-            <p className="demo-title">
-              <i className="fas fa-users"></i>
-              Usuários de Demonstração
-            </p>
-            <div className="demo-users-grid">
-              {demoUsers.map((user, index) => (
-                <button
-                  key={index}
-                  className="demo-user"
-                  onClick={() => fillDemoUser(user)}
-                  type="button"
-                >
-                  <i className="fas fa-user-circle"></i>
-                  <div className="demo-user-info">
-                    <span className="demo-user-nivel">{user.nivel}</span>
-                    <span className="demo-user-email">{user.email}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-          
           <div className="auth-footer">
             <p>
               Não tem uma conta?

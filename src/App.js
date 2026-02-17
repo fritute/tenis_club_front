@@ -31,7 +31,15 @@ function App() {
   const [pendingToken, setPendingToken] = useState(null);
 
   useEffect(() => {
-    checkAuth();
+    // Timeout de segurança para evitar loading eterno
+    const safetyTimer = setTimeout(() => {
+      console.warn('[App] ⚠️ Timeout de segurança ativado - forçando fim do loading');
+      setLoading(false);
+    }, 5000); // 5 segundos de limite máximo para loading
+
+    checkAuth().finally(() => {
+      clearTimeout(safetyTimer);
+    });
   }, []);
 
   const checkAuth = async () => {

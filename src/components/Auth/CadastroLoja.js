@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import $ from 'jquery';
-import { cadastrarLoja } from '../../services/api';
+import { cadastrarLoja, validateToken } from '../../services/api';
 import './CadastroLoja.css';
 
 const CadastroLoja = ({ user, token, onComplete, onSkip }) => {
@@ -169,8 +169,44 @@ const CadastroLoja = ({ user, token, onComplete, onSkip }) => {
         localStorage.setItem('user', JSON.stringify(updatedUser));
         console.log('[CadastroLoja] 💾 Dados do usuário atualizados no localStorage:', updatedUser);
         
+        // 🔐 CRÍTICO: Revalidar o token para forçar backend a retornar token atualizado com fornecedor_id
+        let tokenAtualizado = false;
+        try {
+          const currentToken = localStorage.getItem('token');
+          if (currentToken && !response.token) {
+            console.log('[CadastroLoja] 🔄 Revalidando token para obter fornecedor_id atualizado...');
+            const validationResponse = await validateToken(currentToken);
+            
+            if (validationResponse.valid && validationResponse.token) {
+              console.log('[CadastroLoja] ✅ Novo token recebido da revalidação');
+              localStorage.setItem('token', validationResponse.token);
+              tokenAtualizado = true;
+            } else if (validationResponse.valid && validationResponse.user?.fornecedor_id) {
+              console.log('[CadastroLoja] ✅ Token revalidado com fornecedor_id:', validationResponse.user.fornecedor_id);
+              // Atualizar user com dados atualizados
+              const revalidatedUser = {
+                ...updatedUser,
+                ...validationResponse.user,
+                loja: lojaCompleta
+              };
+              localStorage.setItem('user', JSON.stringify(revalidatedUser));
+              tokenAtualizado = true;
+            } else {
+              console.warn('[CadastroLoja] ⚠️ Revalidação não retornou fornecedor_id. Forçando logout/login.');
+            }
+          } else if (response.token) {
+            tokenAtualizado = true; // Backend já retornou token novo
+          }
+        } catch (revalidateError) {
+          console.warn('[CadastroLoja] ⚠️ Erro ao revalidar token:', revalidateError);
+        }
+        
         // Mostrar mensagem de sucesso
-        const $success = $('<div class="success-notification"><i class="fas fa-check-circle"></i>Loja cadastrada com sucesso!</div>');
+        const successMessage = tokenAtualizado 
+          ? '<i class="fas fa-check-circle"></i>Loja cadastrada com sucesso!'
+          : '<i class="fas fa-check-circle"></i>Loja cadastrada! Faça logout e login para atualizar permissões.';
+        
+        const $success = $(`<div class="success-notification">${successMessage}</div>`);
         $('body').append($success);
         setTimeout(() => $success.addClass('show'), 100);
         
@@ -183,9 +219,26 @@ const CadastroLoja = ({ user, token, onComplete, onSkip }) => {
             console.log('[CadastroLoja] 📦 Enviando dados completos:', lojaCompleta);
             onComplete(lojaCompleta);
           } else {
-            // Se não tem callback, navegar para minha-loja (usuário já logado)
-            console.log('[CadastroLoja] 🏪 Navegando para minha loja');
-            navigate('/minha-loja');
+            // Se não atualizou o token, forçar logout para relogar
+            if (!tokenAtualizado) {
+              console.log('[CadastroLoja] 🔄 Token não atualizado, forçando logout para nova autenticação');
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              
+              // Mostrar aviso antes de redirecionar
+              const $warning = $('<div class="warning-notification"><i class="fas fa-info-circle"></i>Por favor, faça login novamente para ativar as permissões da sua loja.</div>');
+              $('body').append($warning);
+              setTimeout(() => $warning.addClass('show'), 100);
+              
+              setTimeout(() => {
+                $warning.remove();
+                navigate('/login');
+              }, 2500);
+            } else {
+              // Token atualizado, navegar para minha-loja normalmente
+              console.log('[CadastroLoja] 🏪 Navegando para minha loja');
+              navigate('/minha-loja');
+            }
           }
         }, 1500);
       } else {

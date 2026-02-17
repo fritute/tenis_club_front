@@ -9,6 +9,9 @@ import {
   cancelarPedido,
   showNotification 
 } from '../../services/api';
+
+import ProdutoImagem from '../../components/ProdutoImagem/ProdutoImagem';
+import { getProduto } from '../../services/api';
 import './Pedidos.css';
 
 const Pedidos = ({ user }) => {
@@ -17,6 +20,7 @@ const Pedidos = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
+  const [showReloginModal, setShowReloginModal] = useState(false);
   const [filtros, setFiltros] = useState({
     status: '',
     data_inicio: '',
@@ -25,6 +29,14 @@ const Pedidos = ({ user }) => {
   const [viewMode, setViewMode] = useState('lista'); // 'lista' ou 'estatisticas'
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
   const [showDetalhModal, setShowDetalhModal] = useState(false);
+  const [produtosItensPedido, setProdutosItensPedido] = useState([]);
+
+  // Forçar relogin para atualizar token
+  const handleForcarRelogin = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
 
   // Definir função de carregamento baseada no nível do usuário
   const carregarPedidos = async () => {
@@ -61,6 +73,14 @@ const Pedidos = ({ user }) => {
       
     } catch (error) {
       console.error('[Pedidos] Erro ao carregar:', error);
+      
+      // Verificar se é erro de token desatualizado
+      if (error.message === 'TOKEN_DESATUALIZADO') {
+        setShowReloginModal(true);
+        setPedidos([]);
+        return;
+      }
+      
       if (error.message?.includes('404') || error.response?.status === 404) {
         console.warn('[Pedidos] API de pedidos não implementada ainda, mostrando dados simulados');
         // Dados simulados para desenvolvimento
@@ -113,16 +133,23 @@ const Pedidos = ({ user }) => {
       console.log('[Pedidos] Estatísticas carregadas:', dados);
     } catch (error) {
       console.error('[Pedidos] Erro ao carregar estatísticas:', error);
-      // Estatísticas simuladas para desenvolvimento
+      
+      // Verificar se é erro de token desatualizado
+      if (error.message === 'TOKEN_DESATUALIZADO') {
+        setShowReloginModal(true);
+        return;
+      }
+      
+      // Estatísticas zeradas para erro de permissão
       setEstatisticas({
-        total_pedidos: 15,
-        pedidos_pendentes: 3,
-        pedidos_confirmados: 5,
-        pedidos_enviados: 2,
-        pedidos_entregues: 5,
+        total_pedidos: 0,
+        pedidos_pendentes: 0,
+        pedidos_confirmados: 0,
+        pedidos_enviados: 0,
+        pedidos_entregues: 0,
         pedidos_cancelados: 0,
-        valor_total_vendas: 4599.85,
-        ticket_medio: 306.66
+        valor_total_vendas: 0,
+        ticket_medio: 0
       });
     }
   };
@@ -177,11 +204,29 @@ const Pedidos = ({ user }) => {
   };
 
   // Ver detalhes do pedido
-  const handleVerDetalhes = (pedido) => {
+
+  // Carregar informações dos produtos dos itens do pedido selecionado
+  const handleVerDetalhes = async (pedido) => {
     console.log('[Pedidos] Visualizando detalhes do pedido:', pedido.id);
     setPedidoSelecionado(pedido);
     setShowDetalhModal(true);
-    
+
+    // Buscar informações dos produtos dos itens
+    if (pedido?.itens && Array.isArray(pedido.itens)) {
+      const promessas = pedido.itens.map(async (item) => {
+        try {
+          const produto = await getProduto(item.produto_id);
+          return { ...item, produtoInfo: produto };
+        } catch {
+          return { ...item, produtoInfo: null };
+        }
+      });
+      const itensComInfo = await Promise.all(promessas);
+      setProdutosItensPedido(itensComInfo);
+    } else {
+      setProdutosItensPedido([]);
+    }
+
     setTimeout(() => {
       $('.modal-detalh-pedido').addClass('show');
     }, 10);
@@ -258,6 +303,7 @@ const Pedidos = ({ user }) => {
         >
           <option value="pendente">Pendente</option>
           <option value="confirmado">Confirmado</option>
+          <option value="em_separacao">Em Separação</option>
           <option value="enviado">Enviado</option>
           <option value="entregue">Entregue</option>
           <option value="cancelado">Cancelado</option>
@@ -266,6 +312,14 @@ const Pedidos = ({ user }) => {
     }
     
     return null;
+  };
+
+  // Helper seguro para formatar valores monetários
+  const formatarValor = (valor) => {
+    // Tenta converter para número, se falhar ou for null/undefined, usa 0
+    const numero = parseFloat(valor);
+    if (isNaN(numero)) return '0.00';
+    return numero.toFixed(2);
   };
 
   if (!user) {
@@ -389,7 +443,7 @@ const Pedidos = ({ user }) => {
             <div className="stat-card">
               <i className="fas fa-dollar-sign"></i>
               <div className="stat-info">
-                <h4>R$ {(estatisticas.valor_total_vendas || 0).toFixed(2)}</h4>
+                <h4>R$ {formatarValor(estatisticas.valor_total_vendas)}</h4>
                 <p>Total em Vendas</p>
               </div>
             </div>
@@ -437,7 +491,7 @@ const Pedidos = ({ user }) => {
                       {user?.nivel === 'executivo' && pedido.fornecedor_nome && (
                         <p><strong>Fornecedor:</strong> {pedido.fornecedor_nome}</p>
                       )}
-                      <p><strong>Total:</strong> R$ {(pedido.valor_total || 0).toFixed(2)}</p>
+                      <p><strong>Total:</strong> R$ {formatarValor(pedido.valor_total)}</p>
                       {pedido.total_itens && (
                         <p><strong>Itens:</strong> {pedido.total_itens}</p>
                       )}
@@ -477,7 +531,7 @@ const Pedidos = ({ user }) => {
                   <h4><i className="fas fa-info-circle"></i> Informações Gerais</h4>
                   <p><strong>Status:</strong> {formatarStatus(pedidoSelecionado.status)}</p>
                   <p><strong>Data do Pedido:</strong> {formatarData(pedidoSelecionado.created_at)}</p>
-                  <p><strong>Valor Total:</strong> R$ {(pedidoSelecionado.valor_total || 0).toFixed(2)}</p>
+                  <p><strong>Valor Total:</strong> R$ {formatarValor(pedidoSelecionado.valor_total)}</p>
                   {pedidoSelecionado.observacoes && (
                     <p><strong>Observações:</strong> {pedidoSelecionado.observacoes}</p>
                   )}
@@ -496,20 +550,58 @@ const Pedidos = ({ user }) => {
                   </div>
                 )}
                 
-                {pedidoSelecionado.itens && Array.isArray(pedidoSelecionado.itens) && pedidoSelecionado.itens.length > 0 && (
+                {produtosItensPedido && produtosItensPedido.length > 0 && (
                   <div className="detalh-section itens-section">
-                    <h4><i className="fas fa-list"></i> Itens do Pedido ({pedidoSelecionado.itens.length})</h4>
-                    {pedidoSelecionado.itens.map((item, index) => (
-                      <div key={index} className="item-detalh">
-                        <p><strong>{item.produto_nome || `Produto ${item.produto_id}`}</strong></p>
-                        <p>Quantidade: {item.quantidade}</p>
-                        <p>Preço Unit.: R$ {(item.preco_unitario || 0).toFixed(2)}</p>
-                        <p>Subtotal: R$ {(item.subtotal || 0).toFixed(2)}</p>
-                      </div>
-                    ))}
+                    <h4><i className="fas fa-list"></i> Itens do Pedido ({produtosItensPedido.length})</h4>
+                    {produtosItensPedido.map((item, index) => {
+                      const produto = item.produtoInfo;
+                      return (
+                        <div key={index} className="item-detalh" style={{display: 'flex', alignItems: 'center', gap: 16}}>
+                          <ProdutoImagem produtoId={item.produto_id} produtoNome={produto?.nome || item.produto_nome} size="small" />
+                          <div>
+                            <p><strong>{item.produto_nome || produto?.nome || `Produto ${item.produto_id}`}</strong></p>
+                            <p>Quantidade: {item.quantidade}</p>
+                            <p>Preço Unit.: R$ {formatarValor(item.preco_unitario !== undefined ? item.preco_unitario : produto?.preco_base || produto?.preco)}</p>
+                            <p>Subtotal: R$ {formatarValor((item.preco_unitario !== undefined ? item.preco_unitario : produto?.preco_base || produto?.preco || 0) * item.quantidade)}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Relogin Necessário */}
+      {showReloginModal && (
+        <div className="modal-overlay relogin-modal-overlay">
+          <div className="relogin-modal">
+            <div className="relogin-icon">
+              <i className="fas fa-sync-alt"></i>
+            </div>
+            <h3>Atualização Necessária</h3>
+            <p>
+              Sua loja foi cadastrada, mas suas permissões precisam ser atualizadas.
+              <br /><br />
+              <strong>Faça login novamente</strong> para acessar os pedidos da sua loja.
+            </p>
+            <div className="relogin-actions">
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowReloginModal(false)}
+              >
+                Fechar
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={handleForcarRelogin}
+              >
+                <i className="fas fa-sign-in-alt"></i>
+                Fazer Login Novamente
+              </button>
             </div>
           </div>
         </div>
@@ -676,8 +768,8 @@ const Pedidos = ({ user }) => {
                     <h5>{pedido.produto_nome}</h5>
                     <div className="produto-details">
                       <span>Quantidade: <strong>{pedido.quantidade}</strong></span>
-                      <span>Unitário: <strong>R$ {parseFloat(pedido.preco_unitario).toFixed(2)}</strong></span>
-                      <span className="total">Total: <strong>R$ {parseFloat(pedido.valor_total).toFixed(2)}</strong></span>
+                      <span>Unitário: <strong>R$ {formatarValor(pedido.preco_unitario)}</strong></span>
+                      <span className="total">Total: <strong>R$ {formatarValor(pedido.valor_total)}</strong></span>
                     </div>
                   </div>
 

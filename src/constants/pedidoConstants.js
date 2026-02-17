@@ -13,6 +13,7 @@ export const PEDIDO_STATUS = {
   CONFIRMADO: 'confirmado',
   EM_SEPARACAO: 'em_separacao',
   EM_TRANSITO: 'em_transito',
+  ENVIADO: 'enviado', // Adicionado conforme banco de dados
   ENTREGUE: 'entregue',
   CANCELADO: 'cancelado'
 };
@@ -23,6 +24,7 @@ export const PEDIDO_STATUS_LABELS = {
   [PEDIDO_STATUS.CONFIRMADO]: 'Confirmado',
   [PEDIDO_STATUS.EM_SEPARACAO]: 'Em Separação',
   [PEDIDO_STATUS.EM_TRANSITO]: 'Em Trânsito',
+  [PEDIDO_STATUS.ENVIADO]: 'Enviado',
   [PEDIDO_STATUS.ENTREGUE]: 'Entregue',
   [PEDIDO_STATUS.CANCELADO]: 'Cancelado'
 };
@@ -33,6 +35,7 @@ export const PEDIDO_STATUS_CORES = {
   [PEDIDO_STATUS.CONFIRMADO]: '#17a2b8', // Azul claro
   [PEDIDO_STATUS.EM_SEPARACAO]: '#007bff', // Azul
   [PEDIDO_STATUS.EM_TRANSITO]: '#6f42c1', // Roxo
+  [PEDIDO_STATUS.ENVIADO]: '#6f42c1', // Roxo (igual em transito)
   [PEDIDO_STATUS.ENTREGUE]: '#28a745', // Verde
   [PEDIDO_STATUS.CANCELADO]: '#dc3545' // Vermelho
 };
@@ -43,6 +46,7 @@ export const PEDIDO_STATUS_ICONES = {
   [PEDIDO_STATUS.CONFIRMADO]: 'fa-check-circle',
   [PEDIDO_STATUS.EM_SEPARACAO]: 'fa-box-open',
   [PEDIDO_STATUS.EM_TRANSITO]: 'fa-shipping-fast',
+  [PEDIDO_STATUS.ENVIADO]: 'fa-truck',
   [PEDIDO_STATUS.ENTREGUE]: 'fa-check-double',
   [PEDIDO_STATUS.CANCELADO]: 'fa-times-circle'
 };
