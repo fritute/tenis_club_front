@@ -7,6 +7,7 @@ Este projeto é uma plataforma de marketplace que conecta fornecedores a produto
 ### Frontend (Pasta `front/`)
 - **React.js** (Create React App)
 - **Axios** para requisições HTTP
+- **Jquery**  jQuery simplifica e unifica a manipulação do DOM, eventos, animações e AJAX
 - **React Router** para navegação
 - **Chart.js** para gráficos e relatórios
 - **CSS Modules** para estilização
