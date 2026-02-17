@@ -73,6 +73,7 @@ Painel central do fornecedor para gerenciar seu catálogo.
   - Identificados com selo "Revenda".
   - Ação de "Desvincular" (remove da lista, mas mantém o produto original).
   - (Para inserir imagens e na aba meus produtos assim que adicionar e so dar F5 para imagem aparecer no card).
+  - (Após criar uma conta fornecedor e acessar a aba minha loja, o sistema ira pedir para relogar.)
 
 #### 3. Gestão de Vínculos
 - Permite definir fornecedores "Principais" para produtos.
