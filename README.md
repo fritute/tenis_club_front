@@ -56,7 +56,7 @@ npm start
 ## 📦 Como Funciona
 
 ### Perfis de Usuário
-- **Executivo**: Administrador do sistema. Pode gerenciar todos os produtos, fornecedores e vínculos.
+- **Comum**: Realiza comprar com os fornecedores.
 - **Fornecedor**: Usuário que possui uma loja. Pode cadastrar seus próprios produtos ou vender produtos de terceiros (Marketplace).
 
 ### Funcionalidades Principais
@@ -72,6 +72,7 @@ Painel central do fornecedor para gerenciar seu catálogo.
 - **Produtos Vinculados (Revenda)**: Produtos de outros fabricantes que o fornecedor vende.
   - Identificados com selo "Revenda".
   - Ação de "Desvincular" (remove da lista, mas mantém o produto original).
+  - (Para inserir imagens e na aba meus produtos assim que adicionar e so dar F5 para imagem aparecer no card).
 
 #### 3. Gestão de Vínculos
 - Permite definir fornecedores "Principais" para produtos.
