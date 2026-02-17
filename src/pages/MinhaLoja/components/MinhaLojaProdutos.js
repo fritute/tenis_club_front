@@ -36,24 +36,17 @@ const MinhaLojaProdutos = ({ loja }) => {
         getCategorias()
       ]);
       
-      console.log('[MinhaLojaProdutos] 🔍 Carregando produtos para loja:', loja?.id);
-      console.log('[MinhaLojaProdutos] 📦 Resposta produtos:', produtosResponse);
-      console.log('[MinhaLojaProdutos] 🏷️ Resposta categorias:', categoriasResponse);
-      
       // Extrair dados dos produtos
       const produtosList = produtosResponse?.data || produtosResponse?.produtos || produtosResponse || [];
-      console.log('[MinhaLojaProdutos] 📋 Produtos extraídos:', produtosList);
       setProdutos(produtosList);
       
       // Extrair dados das categorias
       const categoriasList = Array.isArray(categoriasResponse) 
         ? categoriasResponse 
         : (categoriasResponse?.data || categoriasResponse?.categorias || []);
-      console.log('[MinhaLojaProdutos] 📂 Categorias extraídas:', categoriasList);
       setCategorias(categoriasList);
       
     } catch (err) {
-      console.error('[MinhaLojaProdutos] Erro ao carregar dados:', err);
       setError('⚠️ Erro ao carregar dados da loja');
     } finally {
       setLoading(false);
@@ -155,17 +148,14 @@ const MinhaLojaProdutos = ({ loja }) => {
         // Se houver imagem, enviar separadamente ou em outro momento
         // Por enquanto, focar em fazer o update dos dados funcionar
         
-        console.log('[MinhaLojaProdutos] ✏️ Atualizando produto:', produtoUpdateData);
         await updateProduto(editingProduct.id, produtoUpdateData);
         
         // Se tiver imagem nova, fazer upload separado
         if (formData.imagem) {
             // Implementar upload de imagem separado se necessário
-            console.log('[MinhaLojaProdutos] 🖼️ Imagem detectada, mas upload deve ser feito via endpoint específico');
         }
       } else {
         // CRIAÇÃO - usar endpoint simplificado da minha loja
-        console.log('[MinhaLojaProdutos] 🆕 Criando produto simplificado na minha loja');
         
         const produtoSimplificado = {
           nome: formData.nome.trim()
@@ -191,17 +181,12 @@ const MinhaLojaProdutos = ({ loja }) => {
           produtoSimplificado.estoque = parseInt(formData.estoque);
         }
 
-        console.log('[MinhaLojaProdutos] 📤 Dados enviados:', produtoSimplificado);
-        
         await addProdutoMinhaLoja(produtoSimplificado);
-        
-        console.log('[MinhaLojaProdutos] ✅ Produto criado com sucesso');
       }
 
       closeModal();
       carregarDados();
     } catch (err) {
-      console.error('[MinhaLojaProdutos] Erro ao salvar produto:', err);
       
       // Verificar se é erro de token desatualizado
       if (err.message === 'TOKEN_DESATUALIZADO') {
@@ -262,7 +247,6 @@ const MinhaLojaProdutos = ({ loja }) => {
         }, 3000);
         
       } catch (err) {
-        console.error('[MinhaLojaProdutos] Erro ao desvincular produto:', err);
         
         const $error = $('<div class="error-toast"><i class="fas fa-times"></i>Erro ao desvincular produto</div>');
         $('body').append($error);
@@ -316,7 +300,6 @@ const MinhaLojaProdutos = ({ loja }) => {
         }, 3000);
         
       } catch (err) {
-        console.error('[MinhaLojaProdutos] Erro ao excluir produto:', err);
         
         const $error = $('<div class="error-toast"><i class="fas fa-times"></i>Erro ao excluir produto</div>');
         $('body').append($error);

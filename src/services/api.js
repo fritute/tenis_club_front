@@ -6,12 +6,10 @@ import { TODOS_STATUS, isStatusValido } from '../constants/pedidoConstants';
 // Deletar vínculo por produto e fornecedor
 export const deleteVinculoPorProdutoFornecedor = async (id_produto, id_fornecedor) => {
   try {
-    console.log('[API] Removendo vínculo por produto e fornecedor:', id_produto, id_fornecedor);
+    // Log removido
     const response = await api.delete(`/vinculos/${id_produto}?fornecedor=${id_fornecedor}`);
-    console.log('[API] Vínculo removido por produto e fornecedor com sucesso');
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao remover vínculo por produto e fornecedor:', error);
     throw error.response?.data || new Error('Erro ao remover vínculo por produto e fornecedor');
   }
 };
@@ -37,26 +35,10 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log(`[API Request] 🚀 ${config.method?.toUpperCase()} ${config.url}`);
-      console.log('[API Request] 🎫 Token JWT adicionado ao header Authorization');
-      console.log('[API Request] 🔐 Backend decodificará fornecedor_id automaticamente');
-      
-      // Log do usuário atual se disponível
-      try {
-        const userData = JSON.parse(localStorage.getItem('user'));
-        if (userData?.nome) {
-          console.log(`[API Request] 👤 Requisição para usuário: ${userData.nome} (${userData.nivel})`);
-        }
-      } catch (e) {
-        // Ignorar erro de parse
-      }
-    } else {
-      console.log(`[API Request] 📝 ${config.method?.toUpperCase()} ${config.url} (sem token)`);
     }
     return config;
   },
   (error) => {
-    console.error('[API Request] 💥 Erro no interceptor:', error);
     return Promise.reject(error);
   }
 );
@@ -70,7 +52,6 @@ const cleanJSONResponse = (data) => {
       try {
         return JSON.parse(jsonMatch[1]);
       } catch (e) {
-        console.warn('[API] Erro ao parsear JSON limpo:', e);
         return data;
       }
     }
@@ -82,37 +63,11 @@ const cleanJSONResponse = (data) => {
 // Interceptor para logar respostas
 api.interceptors.response.use(
   (response) => {
-    console.log(`[API Response] ${response.status} ${response.config.url}`);
-    
     // Limpar dados corrompidos por warnings PHP
     response.data = cleanJSONResponse(response.data);
-    
-    console.log('[API Response] Dados:', response.data);
     return response;
   },
   (error) => {
-    if (error.response) {
-      console.error(`[API Response] ${error.response.status} ${error.response.config.url}`);
-      console.error('[API Response] Erro:', error.response.data);
-      
-      // Verificar se é erro de CORS
-      if (error.message?.includes('Network Error')) {
-        console.error('[API Response] ⚠️  ERRO DE REDE - Possível problema de CORS');
-        console.error('[API Response] Verifique se o backend está rodando e configurado para CORS');
-      }
-    } else if (error.request) {
-      console.error('[API Response] Sem resposta do servidor');
-      console.error('[API Response] Request:', error.request);
-      
-      if (error.message?.includes('Network Error')) {
-        console.error('[API Response] ⚠️  ERRO DE REDE - Verifique:');
-        console.error('[API Response] 1. Backend está rodando?');
-        console.error('[API Response] 2. CORS está configurado?');
-        console.error('[API Response] 3. URL está correta?');
-      }
-    } else {
-      console.error('[API Response] Erro:', error.message);
-    }
     return Promise.reject(error);
   }
 );
@@ -130,8 +85,6 @@ export const diagnosticarConexao = async () => {
     sucessos: [],
     recomendacoes: []
   };
-  
-  console.log('🔍 [DIAGNÓSTICO] Iniciando verificação da API...');
   
   // Teste 1: Verificar conectividade básica
   try {
@@ -177,7 +130,6 @@ export const diagnosticarConexao = async () => {
     diagnostico.recomendacoes.push('⚙️ Implementar rotas faltantes no backend');
   }
   
-  console.log('📊 [DIAGNÓSTICO] Resultado:', diagnostico);
   return diagnostico;
 };
 
@@ -191,20 +143,15 @@ export const login = async (email, senha) => {
     // A resposta já foi limpa pelo interceptor
     const data = response.data;
     
-    console.log('[API] Login - Dados limpos:', data);
-    
     // Verificar se a resposta tem a estrutura esperada
     if (typeof data === 'object' && data !== null) {
       return data;
     }
     
     // Se não conseguiu parsear, retornar erro
-    console.error('[API] Login - Resposta inválida:', data);
     throw new Error('Resposta inválida do servidor');
     
   } catch (error) {
-    console.error('[API] Erro no login:', error);
-    
     // Tratar diferentes tipos de erro
     if (error.response?.status === 401) {
       throw new Error('Credenciais inválidas');
@@ -218,16 +165,9 @@ export const login = async (email, senha) => {
 
 export const cadastrarUsuario = async (dadosUsuario) => {
   try {
-    console.log('[API] Cadastrando usuário:', dadosUsuario);
     const response = await api.post('/usuarios', dadosUsuario);
-    
-    const data = response.data;
-    console.log('[API] Cadastro - Resposta:', data);
-    
-    return data;
+    return response.data;
   } catch (error) {
-    console.error('[API] Erro no cadastro:', error);
-    
     // Tratar diferentes tipos de erro
     if (error.response?.status === 409) {
       throw new Error('E-mail já cadastrado no sistema');
@@ -244,11 +184,9 @@ export const cadastrarUsuario = async (dadosUsuario) => {
 
 export const cadastrarLoja = async (dadosLoja) => {
   try {
-    console.log('[API] Cadastrando loja:', dadosLoja);
     const response = await api.post('/fornecedores/minha-loja', dadosLoja);
     
     const data = response.data;
-    console.log('[API] Cadastro de loja - Resposta completa:', data);
     
     // Garantir que retornamos dados consistentes
     const resultado = {
@@ -266,10 +204,8 @@ export const cadastrarLoja = async (dadosLoja) => {
       ...data
     };
     
-    console.log('[API] Dados normalizados da loja:', resultado);
     return resultado;
   } catch (error) {
-    console.error('[API] Erro no cadastro da loja:', error);
     
     if (error.response?.status === 400) {
       const errorData = error.response?.data;
@@ -285,7 +221,7 @@ export const cadastrarLoja = async (dadosLoja) => {
             throw new Error(msg);
           }
         } catch (parseError) {
-          console.warn('[API] Não foi possível extrair JSON da resposta:', parseError);
+          // Ignorar erro de parse
         }
       }
       
@@ -313,16 +249,6 @@ export const validateToken = async (token) => {
     const response = await api.post('/usuarios/validar-token', { token });
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao validar token:', error);
-    console.error('[API] Status:', error.response?.status);
-    console.error('[API] Dados:', error.response?.data);
-    
-    // Tratamento específico para erro 501
-    if (error.response?.status === 501) {
-      console.error('[API] ⚠️  ERRO 501 - Endpoint não implementado no backend');
-      console.error('[API] O backend precisa implementar: POST /api/usuarios/validar-token');
-      console.error('[API] Esperado: { "valid": true/false, "user": {...} }');
-    }
     
     throw error.response?.data || new Error('Token inválido');
   }
@@ -345,13 +271,10 @@ export const getFornecedores = async (params = {}) => {
     const queryString = queryParams.toString();
     const url = queryString ? `/fornecedores?${queryString}` : '/fornecedores';
     
-    console.log('[API] 🏪 Buscando fornecedores:', url);
     const response = await api.get(url);
     
-    console.log(`[API] ✅ ${response.data?.length || 0} fornecedores encontrados`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar fornecedores:', error);
     throw error.response?.data || new Error('Erro ao buscar fornecedores');
   }
 };
@@ -360,42 +283,11 @@ export const getFornecedores = async (params = {}) => {
 export const getMinhaLoja = async (useAlternativeEndpoint = false) => {
   try {
     const endpoint = useAlternativeEndpoint ? '/fornecedores?minha_loja=true' : '/fornecedores/minha-loja';
-    console.log(`[API] 🏪 Buscando loja via: ${endpoint}`);
-    console.log('[API] 🔐 JWT → fornecedor_id → tabela fornecedores');
-    console.log('[API] 📊 Schema: usuarios.fornecedor_id → fornecedores.id');
     
     const response = await api.get(endpoint);
     
-    console.log('[API] ✅ Resposta recebida com sucesso!');
-    console.log('[API] 📋 Status:', response.status);
-    console.log('[API] 🗂️ Estrutura da resposta:', response.data);
-    console.log('[API] 🔍 Tipo de dados:', typeof response.data);
-    console.log('[API] 🗝️ Chaves disponíveis:', Object.keys(response.data || {}));
-    
-    // Análise da estrutura baseada no schema do banco
-    if (response.data) {
-      if (response.data.success !== undefined) {
-        console.log('[API] ✅ Campo success:', response.data.success);
-        if (response.data.success === false) {
-          console.log('[API] ⚠️ Falha: Usuário pode não ter fornecedor_id ou registro em fornecedores');
-        }
-      }
-      if (response.data.data !== undefined) {
-        console.log('[API] 📋 Campo data:', response.data.data, 'Tipo:', typeof response.data.data);
-        if (Array.isArray(response.data.data) && response.data.data.length === 0) {
-          console.log('[API] 🔍 Array vazio = usuário autenticado mas sem loja em fornecedores');
-        }
-      }
-      if (response.data.message !== undefined) {
-        console.log('[API] 💬 Mensagem:', response.data.message);
-      }
-    }
-    
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar loja:', error);
-    console.error('[API] 🐛 Status:', error.response?.status);
-    console.error('[API] 📋 Response:', error.response?.data);
     
     // Tratamento baseado no schema do banco
     if (error.response?.status === 404) {
@@ -413,13 +305,9 @@ export const getMinhaLoja = async (useAlternativeEndpoint = false) => {
 // Atualizar minha loja (fornecedor logado)
 export const updateMinhaLoja = async (dadosLoja) => {
   try {
-    console.log('[API] 🏪 Atualizando minha loja:', dadosLoja);
     const response = await api.put('/fornecedores/minha-loja', dadosLoja);
-    
-    console.log('[API] ✅ Loja atualizada com sucesso!');
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao atualizar loja:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Loja não encontrada');
@@ -434,7 +322,6 @@ export const updateMinhaLoja = async (dadosLoja) => {
 // Alterar status da loja (novo endpoint específico)
 export const updateLojaStatus = async (lojaId, status) => {
   try {
-    console.log('[API] 🔄 Alterando status da loja:', { lojaId, status });
     
     // Validação de status
     if (!['Ativo', 'Inativo'].includes(status)) {
@@ -443,10 +330,8 @@ export const updateLojaStatus = async (lojaId, status) => {
     
     const response = await api.post(`/fornecedores/${lojaId}/status`, { status });
     
-    console.log('[API] ✅ Status da loja alterado com sucesso!');
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao alterar status da loja:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Loja não encontrada');
@@ -461,7 +346,6 @@ export const updateLojaStatus = async (lojaId, status) => {
 // Alterar status do produto (novo endpoint específico)
 export const updateProdutoStatus = async (produtoId, status) => {
   try {
-    console.log('[API] 🔄 Alterando status do produto:', { produtoId, status });
     
     // Validação de status
     if (!['Ativo', 'Inativo'].includes(status)) {
@@ -470,10 +354,8 @@ export const updateProdutoStatus = async (produtoId, status) => {
     
     const response = await api.post(`/produtos/${produtoId}/status`, { status });
     
-    console.log('[API] ✅ Status do produto alterado com sucesso!');
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao alterar status do produto:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Produto não encontrado');
@@ -488,13 +370,10 @@ export const updateProdutoStatus = async (produtoId, status) => {
 // Buscar fornecedor por ID
 export const getFornecedor = async (id) => {
   try {
-    console.log('[API] 🔍 Buscando fornecedor:', id);
     const response = await api.get(`/fornecedores/${id}`);
     
-    console.log(`[API] ✅ Fornecedor ${id} encontrado`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar fornecedor:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Fornecedor não encontrado');
@@ -509,13 +388,10 @@ export const getFornecedor = async (id) => {
 // Criar fornecedor (executivo)
 export const createFornecedor = async (data) => {
   try {
-    console.log('[API] ➕ Criando fornecedor:', data.nome);
     const response = await api.post('/fornecedores', data);
     
-    console.log(`[API] ✅ Fornecedor criado com sucesso - ID: ${response.data?.id || 'N/A'}`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao criar fornecedor:', error);
     
     if (error.response?.status === 400) {
       throw new Error('Dados inválidos. Verifique os campos obrigatórios.');
@@ -532,13 +408,10 @@ export const createFornecedor = async (data) => {
 // Atualizar fornecedor
 export const updateFornecedor = async (id, data) => {
   try {
-    console.log('[API] ✏️ Atualizando fornecedor:', id);
     const response = await api.put(`/fornecedores/${id}`, data);
     
-    console.log(`[API] ✅ Fornecedor ${id} atualizado com sucesso`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao atualizar fornecedor:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Fornecedor não encontrado');
@@ -592,21 +465,16 @@ export const getProdutos = async (params = {}) => {
     const queryString = queryParams.toString();
     const url = queryString ? `/produtos?${queryString}` : '/produtos';
     
-    console.log('[API] getProdutos - URL:', url);
     const response = await api.get(url);
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao buscar produtos:', error);
     
     // Tratar diferentes tipos de erro
     if (error.message?.includes('Network Error')) {
-      console.error('[API] ⚠️  Erro de CORS/Conectividade ao buscar produtos');
-      console.error('[API] Verifique se o backend está configurado para CORS');
       throw new Error('Erro de conexão - verifique se o backend está rodando e configurado para CORS');
     }
     
     if (error.response?.status === 404) {
-      console.error('[API] Endpoint /produtos não encontrado no backend');
       throw new Error('Rota de produtos não implementada no backend');
     }
     
@@ -635,13 +503,10 @@ export const createProduto = async (data) => {
 // Criar produto na minha loja (fornecedor) - Endpoint específico 
 export const addProdutoMinhaLoja = async (produtoData) => {
   try {
-    console.log('[API] 🏪 Adicionando produto à minha loja:', produtoData);
     const response = await api.post('/produtos/minha-loja', produtoData);
     
-    console.log('[API] ✅ Produto adicionado à loja:', response.data);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao adicionar produto à loja:', error);
     
     const errorMessage = error.response?.data?.message || '';
     
@@ -746,22 +611,17 @@ export const getProdutoImagens = async (produtoId) => {
 // Buscar imagem principal do produto (para cards/banners) - Endpoint otimizado
 export const getProdutoImagemPrincipal = async (produtoId) => {
   try {
-    console.log('[API] 🖼️ Buscando imagem principal do produto (endpoint otimizado):', produtoId);
     const response = await api.get(`/produtos/imagens/principal/${produtoId}`);
     
-    console.log('[API] ✅ Imagem principal encontrada via endpoint dedicado!');
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar imagem principal via endpoint otimizado:', error);
     
     if (error.response?.status === 404) {
-      console.log('[API] 📷 Produto sem imagem principal - usando placeholder');
       return null;
     }
     
     // Fallback para método anterior se o novo endpoint não estiver disponível
     if (error.response?.status === 404 || error.response?.status === 405) {
-      console.log('[API] 🔄 Tentando método fallback para imagem principal');
       try {
         const response = await getProdutoImagens(produtoId);
         
@@ -769,23 +629,19 @@ export const getProdutoImagemPrincipal = async (produtoId) => {
         const imagens = Array.isArray(response) ? response : (response?.data || response?.imagens || []);
         
         if (imagens.length === 0) {
-          console.log('[API] 📷 Nenhuma imagem encontrada para produto:', produtoId);
           return null;
         }
         
         // Buscar imagem marcada como principal primeiro
         const imagemPrincipal = imagens.find(img => img.principal === true || img.principal === 1);
         if (imagemPrincipal) {
-          console.log('[API] ✅ Imagem principal encontrada:', imagemPrincipal.url);
           return imagemPrincipal;
         }
         
         // Se não tem principal, pegar a primeira da lista
         const primeiraImagem = imagens[0];
-        console.log('[API] 📸 Usando primeira imagem:', primeiraImagem.url);
         return primeiraImagem;
       } catch (fallbackError) {
-        console.log('[API] ⚠️ Fallback também falhou:', fallbackError.message);
         return null;
       }
     }
@@ -945,17 +801,10 @@ export const createPedido = async (data) => {
       }
     });
     
-    console.log('[API] 🛒 Criando pedido com', data.itens.length, 'item(ns)');
-    console.log('[API] 🏪 Fornecedor ID:', data.fornecedor_id);
-    console.log('[API] 📍 Endereço:', data.endereco_entrega);
-    console.log('[API] 📦 Dados completos do pedido:', JSON.stringify(data, null, 2));
-    
     const response = await api.post('/pedidos', data);
     
-    console.log(`[API] ✅ Pedido criado com sucesso - ID: ${response.data?.id || 'N/A'}`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao criar pedido:', error);
     
     if (error.response?.status === 400) {
       throw new Error('Dados do pedido inválidos. Verifique os campos obrigatórios.');
@@ -982,14 +831,11 @@ export const getMeusPedidos = async (params = {}) => {
     const queryString = queryParams.toString();
     const url = queryString ? `/pedidos/meus?${queryString}` : '/pedidos/meus';
     
-    console.log('[API] 📋 Buscando meus pedidos:', url);
     const response = await api.get(url);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar meus pedidos:', error);
     
     if (error.response?.status === 404) {
-      console.warn('[API] ⚠️ Endpoint /pedidos/meus não implementado, usando dados simulados');
       return {
         pedidos: [
           {
@@ -1026,16 +872,13 @@ export const getPedidosRecebidos = async (params = {}) => {
     const queryString = queryParams.toString();
     const url = queryString ? `/pedidos/recebidos?${queryString}` : '/pedidos/recebidos';
     
-    console.log('[API] 🏪 Buscando pedidos recebidos:', url);
     const response = await api.get(url);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar pedidos recebidos:', error);
     
     const errorMessage = error.response?.data?.message || '';
     
     if (error.response?.status === 404) {
-      console.warn('[API] ⚠️ Endpoint /pedidos/recebidos não implementado');
       return { pedidos: [] };
     }
     
@@ -1055,10 +898,8 @@ export const getEstatisticasPedidos = async (periodo = '30d') => {
   try {
     const response = await api.get(`/pedidos/estatisticas?periodo=${periodo}`);
     
-    console.log('[API] 📊 Estatísticas de pedidos carregadas');
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar estatísticas de pedidos:', error);
     
     const errorMessage = error.response?.data?.message || '';
     
@@ -1104,13 +945,10 @@ export const getPedido = async (id) => {
       throw new Error('ID do pedido é obrigatório');
     }
     
-    console.log('[API] 🔍 Buscando detalhes do pedido:', id);
     const response = await api.get(`/pedidos/${id}`);
     
-    console.log('[API] ✅ Pedido encontrado:', response.data);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar pedido:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Pedido não encontrado');
@@ -1135,11 +973,9 @@ export const getAllPedidos = async (params = {}) => {
     const queryString = queryParams.toString();
     const url = queryString ? `/pedidos?${queryString}` : '/pedidos';
     
-    console.log('[API] 👑 Buscando todos os pedidos (executivo):', url);
     const response = await api.get(url);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar pedidos:', error);
     
     if (error.response?.status === 403) {
       throw new Error('Apenas executivos podem visualizar todos os pedidos');
@@ -1157,16 +993,13 @@ export const updateStatusPedido = async (id, status, observacao = '') => {
       throw new Error(`Status inválido. Use um dos seguintes: ${TODOS_STATUS.join(', ')}`);
     }
     
-    console.log('[API] 🔄 Atualizando status do pedido:', id, 'para:', status);
     const response = await api.put(`/pedidos/${id}/status`, { 
       status, 
       observacao
     });
     
-    console.log(`[API] ✅ Status do pedido ${id} atualizado para: ${status}`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao atualizar status do pedido:', error);
     
     if (error.response?.status === 403) {
       throw new Error('Você não tem permissão para alterar este pedido');
@@ -1183,13 +1016,10 @@ export const updateStatusPedido = async (id, status, observacao = '') => {
 // Cancelar pedido (cliente)
 export const cancelarPedido = async (id, motivo = '') => {
   try {
-    console.log('[API] ❌ Cancelando pedido:', id, motivo ? `Motivo: ${motivo}` : '');
     const response = await api.put(`/pedidos/${id}/cancelar`, { motivo });
     
-    console.log(`[API] ✅ Pedido ${id} cancelado com sucesso`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao cancelar pedido:', error);
     
     if (error.response?.status === 403) {
       throw new Error('Você não pode cancelar este pedido. Apenas o cliente pode cancelar seus próprios pedidos.');
@@ -1205,7 +1035,6 @@ export const cancelarPedido = async (id, motivo = '') => {
 
 // Função genérica para manter compatibilidade (será removida futuramente)
 export const getPedidos = async (params = {}) => {
-  console.warn('[API] ⚠️ AVISO: getPedidos() será descontinuada. Use getMeusPedidos(), getPedidosRecebidos() ou getAllPedidos()');
   return getAllPedidos(params);
 };
 
@@ -1216,13 +1045,10 @@ export const getPedidos = async (params = {}) => {
 // Validar token JWT
 export const validarToken = async (token) => {
   try {
-    console.log('[API] 🔐 Validando token JWT');
     const response = await api.post('/usuarios/validar-token', { token });
     
-    console.log('[API] ✅ Token válido');
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Token inválido:', error);
     
     if (error.response?.status === 401) {
       throw new Error('Token inválido ou expirado');
@@ -1245,11 +1071,9 @@ export const getUsuarios = async (params = {}) => {
     const queryString = queryParams.toString();
     const url = queryString ? `/usuarios?${queryString}` : '/usuarios';
     
-    console.log('[API] 👥 Buscando usuários (executivo):', url);
     const response = await api.get(url);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar usuários:', error);
     
     if (error.response?.status === 403) {
       throw new Error('Apenas executivos podem listar usuários');
@@ -1262,13 +1086,10 @@ export const getUsuarios = async (params = {}) => {
 // Perfil próprio do usuário
 export const getPerfil = async () => {
   try {
-    console.log('[API] 👤 Buscando perfil do usuário');
     const response = await api.get('/usuarios/perfil');
     
-    console.log('[API] ✅ Perfil carregado');
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar perfil:', error);
     
     if (error.response?.status === 401) {
       throw new Error('Não autenticado. Faça login novamente.');
@@ -1281,13 +1102,10 @@ export const getPerfil = async () => {
 // Buscar usuário por ID
 export const getUsuario = async (id) => {
   try {
-    console.log('[API] 🔍 Buscando usuário:', id);
     const response = await api.get(`/usuarios/${id}`);
     
-    console.log(`[API] ✅ Usuário ${id} encontrado`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao buscar usuário:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Usuário não encontrado');
@@ -1302,13 +1120,10 @@ export const getUsuario = async (id) => {
 // Criar novo usuário
 export const criarUsuario = async (dadosUsuario) => {
   try {
-    console.log('[API] ➕ Criando novo usuário:', dadosUsuario.nome);
     const response = await api.post('/usuarios', dadosUsuario);
     
-    console.log(`[API] ✅ Usuário criado com sucesso - ID: ${response.data?.id || 'N/A'}`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao criar usuário:', error);
     
     if (error.response?.status === 400) {
       throw new Error('Dados inválidos. Verifique os campos obrigatórios.');
@@ -1325,13 +1140,10 @@ export const criarUsuario = async (dadosUsuario) => {
 // Atualizar usuário existente
 export const atualizarUsuario = async (id, dadosUsuario) => {
   try {
-    console.log('[API] ✏️ Atualizando usuário:', id);
     const response = await api.put(`/usuarios/${id}`, dadosUsuario);
     
-    console.log(`[API] ✅ Usuário ${id} atualizado com sucesso`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao atualizar usuário:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Usuário não encontrado');
@@ -1350,13 +1162,10 @@ export const atualizarUsuario = async (id, dadosUsuario) => {
 // Deletar usuário
 export const deletarUsuario = async (id) => {
   try {
-    console.log('[API] 🗑️ Deletando usuário:', id);
     const response = await api.delete(`/usuarios/${id}`);
     
-    console.log(`[API] ✅ Usuário ${id} deletado com sucesso`);
     return response.data;
   } catch (error) {
-    console.error('[API] ❌ Erro ao deletar usuário:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Usuário não encontrado');
@@ -1406,16 +1215,13 @@ export const showNotification = (message, type = 'success') => {
 // Listar todos os vinculos
 export const getVinculos = async () => {
   try {
-    console.log('[API] Buscando todos os vinculos');
     const response = await api.get('/vinculos');
     
     const data = response.data;
     const vinculos = Array.isArray(data) ? data : (data?.vinculos || data?.data || []);
     
-    console.log('[API] vinculos encontrados:', vinculos.length);
     return vinculos;
   } catch (error) {
-    console.error('[API] Erro ao buscar vinculos:', error);
     
     if (error.response?.status === 404) {
       return [];
@@ -1428,13 +1234,10 @@ export const getVinculos = async () => {
 // Criar vinculo produto-fornecedor
 export const createVinculo = async (vinculoData) => {
   try {
-    console.log('[API] Criando vinculo produto-fornecedor:', vinculoData);
     const response = await api.post('/vinculos', vinculoData);
     
-    console.log('[API] Vinculo criado com sucesso:', response.data);
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao criar vinculo:', error);
     
     if (error.response?.status === 409) {
       throw new Error('Este vinculo ja existe');
@@ -1451,13 +1254,10 @@ export const createVinculo = async (vinculoData) => {
 // Criar múltiplos vínculos
 export const createVinculosMultiplos = async (vinculosData) => {
   try {
-    console.log('[API] Criando vínculos múltiplos:', vinculosData);
     const response = await api.post('/vinculos/multiplos', { vinculos: vinculosData });
     
-    console.log('[API] Vínculos criados:', response.data);
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao criar vínculos múltiplos:', error);
     
     if (error.response?.status === 400) {
       throw new Error('Dados inválidos para criar vínculos');
@@ -1472,16 +1272,13 @@ export const createVinculosMultiplos = async (vinculosData) => {
 // Buscar fornecedores de um produto
 export const getVinculosPorProduto = async (produtoId) => {
   try {
-    console.log('[API] Buscando fornecedores do produto:', produtoId);
     const response = await api.get('/vinculos/produto/' + produtoId);
     
     const data = response.data;
     const vinculos = Array.isArray(data) ? data : (data?.vinculos || data?.data || []);
     
-    console.log('[API] Fornecedores vinculados ao produto:', vinculos.length);
     return vinculos;
   } catch (error) {
-    console.error('[API] Erro ao buscar fornecedores do produto:', error);
     
     if (error.response?.status === 404) {
       return [];
@@ -1494,17 +1291,13 @@ export const getVinculosPorProduto = async (produtoId) => {
 // Buscar produtos de um fornecedor
 export const getVinculosPorFornecedor = async (fornecedorId) => {
   try {
-    console.log('[API] Buscando produtos do fornecedor:', fornecedorId);
     const response = await api.get('/vinculos/fornecedor/' + fornecedorId);
     
     const data = response.data;
     const vinculos = Array.isArray(data) ? data : (data?.vinculos || data?.data || []);
     
-    console.log('[API] Produtos vinculados ao fornecedor:', vinculos.length);
     return vinculos;
   } catch (error) {
-    console.error('[API] Erro ao buscar produtos do fornecedor:', error);
-    
     if (error.response?.status === 404) {
       return [];
     }
@@ -1516,19 +1309,14 @@ export const getVinculosPorFornecedor = async (fornecedorId) => {
 // Nova rota para buscar produtos da minha empresa (próprios + vinculados)
 export const getMeusProdutos = async () => {
   try {
-    console.log('[API] Buscando produtos da minha empresa (próprios + vinculados)');
     const response = await api.get('/produtos/minha-empresa');
     
     const data = response.data;
     const produtos = Array.isArray(data) ? data : (data?.produtos || data?.data || []);
     
-    console.log(`[API] ✅ ${produtos.length} produtos encontrados na minha empresa`);
     return produtos;
   } catch (error) {
-    console.error('[API] Erro ao buscar produtos da minha empresa:', error);
-    
     if (error.response?.status === 404) {
-      console.warn('[API] Rota /produtos/minha-empresa não encontrada, tentando fallback...');
       // Fallback para getProdutos com loja_id se a rota nova falhar
       try {
         const user = JSON.parse(localStorage.getItem('user'));
@@ -1536,7 +1324,7 @@ export const getMeusProdutos = async () => {
           return await getProdutos({ loja_id: user.loja.id });
         }
       } catch (e) {
-        console.error('Erro no fallback:', e);
+        // Silently fail fallback
       }
       return [];
     }
@@ -1545,16 +1333,12 @@ export const getMeusProdutos = async () => {
   }
 };
 
-// Remover vinculo
 // Remover vínculo por ID
 export const deleteVinculo = async (vinculoId) => {
   try {
-    console.log('[API] Removendo vínculo:', vinculoId);
     const response = await api.delete('/vinculos/' + vinculoId);
-    console.log('[API] Vínculo removido com sucesso');
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao remover vínculo:', error);
     if (error.response?.status === 404) {
       throw new Error('Vínculo não encontrado');
     } else if (error.response?.status === 403) {
@@ -1565,30 +1349,25 @@ export const deleteVinculo = async (vinculoId) => {
 };
 export const deleteVinculosEmMassa = async (vinculos) => {
   try {
-    console.log('[API] Removendo vínculos em massa:', vinculos);
     // Filtra apenas os campos id_produto e id_fornecedor
     const vinculosFiltrados = vinculos.map(v => ({
       id_produto: v.id_produto,
       id_fornecedor: v.id_fornecedor
     }));
-    // Validação extra e log detalhado
+    // Validação extra
     const invalidos = vinculosFiltrados.filter(v => !v.id_produto || !v.id_fornecedor);
     if (invalidos.length > 0) {
-      console.error('[API] Vínculos inválidos detectados antes do envio:', invalidos);
       throw new Error('Existem vínculos sem id_produto ou id_fornecedor');
     }
-    console.log('[API] Payload final para /vinculos/multiplos:', JSON.stringify({ vinculos: vinculosFiltrados }));
     try {
       const response = await api.delete('/vinculos/multiplos', {
         data: { vinculos: vinculosFiltrados },
         headers: { 'Content-Type': 'application/json' }
       });
-      console.log('[API] Vínculos removidos em massa com sucesso');
       return response.data;
     } catch (massaError) {
       // Se não existir endpoint de massa, remove um a um
       if (massaError.response?.status === 404 || massaError.response?.status === 405) {
-        console.log('[API] Endpoint de massa não disponível, removendo um a um...');
         const resultados = {
           sucesso: [],
           falhas: []
@@ -1602,13 +1381,11 @@ export const deleteVinculosEmMassa = async (vinculos) => {
             resultados.falhas.push({ ...vinc, erro: err.message });
           }
         }
-        console.log('[API] Remoção em massa concluída:', resultados);
         return resultados;
       }
       throw massaError;
     }
   } catch (error) {
-    console.error('[API] Erro ao remover vínculos em massa:', error);
     throw error.response?.data || new Error('Erro ao remover vínculos em massa');
   }
 };
@@ -1616,13 +1393,10 @@ export const deleteVinculosEmMassa = async (vinculos) => {
 // Remover todos os vínculos de um produto
 export const deleteVinculosPorProduto = async (produtoId) => {
   try {
-    console.log('[API] Removendo vínculos do produto:', produtoId);
     const response = await api.delete(`/vinculos/produto/${produtoId}`);
     
-    console.log('[API] Vínculos do produto removidos com sucesso');
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao remover vínculos do produto:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Produto não encontrado ou sem vínculos');
@@ -1637,13 +1411,10 @@ export const deleteVinculosPorProduto = async (produtoId) => {
 // Definir fornecedor principal para um produto
 export const setVinculoPrincipal = async (id_produto, id_fornecedor) => {
   try {
-    console.log(`[API] Definindo fornecedor principal: Produto ${id_produto}, Fornecedor ${id_fornecedor}`);
     const response = await api.put(`/vinculos/${id_produto}/${id_fornecedor}/principal`);
     
-    console.log('[API] Fornecedor principal definido com sucesso');
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao definir fornecedor principal:', error);
     
     if (error.response?.status === 404) {
       throw new Error('Vínculo não encontrado');
@@ -1663,30 +1434,23 @@ export const getHistoricoVinculos = async (produtoId = null) => {
       url += `?produto_id=${produtoId}`;
     }
     
-    console.log(`[API] Buscando histórico de vínculos: ${url}`);
     const response = await api.get(url);
     
-    console.log(`[API] Histórico recuperado: ${response.data?.length || 0} registros`);
     return response.data;
   } catch (error) {
-    console.error('[API] Erro ao buscar histórico de vínculos:', error);
     throw error.response?.data || new Error('Erro ao buscar histórico de vínculos');
   }
 };
 
 export const getProdutosDisponiveis = async () => {
   try {
-    console.log('[API] Buscando produtos disponíveis para vinculação');
     const response = await api.get('/produtos/disponiveis');
     
     const data = response.data;
     const produtos = Array.isArray(data) ? data : (data?.produtos || data?.data || []);
     
-    console.log(`[API] ${produtos.length} produtos disponíveis encontrados`);
     return produtos;
   } catch (error) {
-    console.error('[API] Erro ao buscar produtos disponíveis:', error);
-    
     if (error.response?.status === 404) {
       return [];
     }

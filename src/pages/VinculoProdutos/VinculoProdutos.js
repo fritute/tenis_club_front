@@ -83,15 +83,12 @@ const VinculoProdutos = ({ user }) => {
         const todosVinculos = await getVinculos();
         const novosVinculos = Array.isArray(todosVinculos) ? [...todosVinculos] : ([...(todosVinculos?.data || [])]);
         setVinculos(novosVinculos);
-        console.log('[VinculoProdutos] Vínculos atualizados:', novosVinculos);
       } catch (e) {
-        console.log('[Vinculos] Erro ao carregar vínculos:', e);
         setVinculos([]);
       }
 
 
     } catch (err) {
-      console.error('[VinculoProdutos] Erro ao carregar dados:', err);
       setError('⚠️ Erro ao carregar dados');
     } finally {
       setLoading(false);
@@ -106,7 +103,6 @@ const VinculoProdutos = ({ user }) => {
       const disponiveis = await getProdutosDisponiveis();
       setProdutosDisponiveis(Array.isArray(disponiveis) ? disponiveis : []);
     } catch (err) {
-      console.error('Erro ao carregar marketplace:', err);
       // Não exibimos erro global para não atrapalhar a navegação, apenas log
     } finally {
       setLoadingMarketplace(false);
@@ -161,7 +157,6 @@ const VinculoProdutos = ({ user }) => {
         status: 'Ativo'
       };
 
-      console.log('[Vinculos] Criando vínculo:', vinculoData);
       await createVinculo(vinculoData);
       
       setSuccess('✅ Vínculo criado com sucesso!');
@@ -173,7 +168,6 @@ const VinculoProdutos = ({ user }) => {
       }, 1500);
 
     } catch (err) {
-      console.error('[VinculoProdutos] Erro ao criar vínculo:', err);
       setError(err.message || '❌ Erro ao criar vínculo');
     }
   };
@@ -197,7 +191,6 @@ const VinculoProdutos = ({ user }) => {
       setTimeout(() => setSuccess(''), 3000);
 
     } catch (err) {
-      console.error('[VinculoProdutos] Erro ao remover vínculo:', err);
       setError(err.message || '❌ Erro ao remover vínculo');
     }
   };
@@ -269,7 +262,7 @@ const VinculoProdutos = ({ user }) => {
           setSuccess(`✅ ${sucessos} vínculos removidos com sucesso!`);
         }
         if (resultado.falhas?.length > 0) {
-          console.warn('[VinculoProdutos] Falhas ao remover vínculos:', resultado.falhas);
+          // Falhas silenciosas
         }
       } else {
         setSuccess(`✅ ${qtd} vínculos removidos com sucesso!`);
@@ -281,7 +274,6 @@ const VinculoProdutos = ({ user }) => {
       setTimeout(() => setSuccess(''), 4000);
 
     } catch (err) {
-      console.error('[VinculoProdutos] Erro na remoção em massa:', err);
       setError(err.message || '❌ Erro ao remover vínculos em massa');
     } finally {
       setRemovendoEmMassa(false);
@@ -385,7 +377,6 @@ const VinculoProdutos = ({ user }) => {
       setError('');
       setSuccess('');
       
-      console.log(`[Vinculos] Definindo principal: Produto ${vinculo.id_produto}, Fornecedor ${vinculo.id_fornecedor}`);
       await setVinculoPrincipal(vinculo.id_produto, vinculo.id_fornecedor);
       
       // Atualizar estado local para refletir a mudança imediatamente
@@ -405,7 +396,6 @@ const VinculoProdutos = ({ user }) => {
       setTimeout(() => setSuccess(''), 3000);
       
     } catch (err) {
-      console.error('[VinculoProdutos] Erro ao definir principal:', err);
       setError(err.message || '❌ Erro ao definir fornecedor principal');
     }
   };
@@ -418,11 +408,9 @@ const VinculoProdutos = ({ user }) => {
     setError('');
 
     try {
-      console.log(`[Vinculos] Buscando histórico para produto: ${produto.id}`);
       const dados = await getHistoricoVinculos(produto.id);
       setHistoricoData(Array.isArray(dados) ? dados : (dados?.data || []));
     } catch (err) {
-      console.error('[VinculoProdutos] Erro ao carregar histórico:', err);
       setError('Erro ao carregar histórico de vínculos');
     } finally {
       setLoadingHistorico(false);
